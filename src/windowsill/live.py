@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import tempfile
 import time
 from dataclasses import dataclass
@@ -157,8 +158,36 @@ def read(path: Path, *, max_age: float = DEFAULT_MAX_AGE) -> LiveState:
 
 
 def _pid_alive(pid: int) -> bool:
+    """Is this process still running?
+
+    On POSIX, signal 0 is the standard harmless liveness probe. **On Windows
+    it is not**: `os.kill` there calls `TerminateProcess`, so the POSIX idiom
+    would kill the very process it claims to be inspecting - including our own
+    monitor. Windows needs `OpenProcess` + `GetExitCodeProcess` instead.
+    """
     if pid <= 0:
         return False
+
+    if sys.platform.startswith("win"):
+        import ctypes
+
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        STILL_ACTIVE = 259
+
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not handle:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            if kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                return code.value == STILL_ACTIVE
+            # The handle opened, so the process exists even if we cannot read
+            # its exit code.
+            return True
+        finally:
+            kernel32.CloseHandle(handle)
+
     try:
         os.kill(pid, 0)
     except ProcessLookupError:

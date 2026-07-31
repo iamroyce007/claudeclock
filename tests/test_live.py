@@ -224,3 +224,26 @@ def test_tray_tooltip_has_the_essentials(tmp_path):
 def test_tray_tooltip_when_disconnected(tmp_path):
     tooltip = live.tray_tooltip(live.read(tmp_path / "absent.json"))
     assert "not running" in tooltip
+
+
+def test_pid_alive_never_kills_the_process_it_probes():
+    """Regression: `os.kill(pid, 0)` terminates the target on Windows.
+
+    POSIX treats signal 0 as a harmless liveness probe; Windows `os.kill`
+    calls TerminateProcess, so the POSIX idiom would kill the running monitor
+    (and, when this was a test, pytest itself).
+    """
+    import os
+
+    assert live._pid_alive(os.getpid()) is True
+    # Still here after probing ourselves - which is the whole point.
+    assert os.getpid() > 0
+
+
+def test_pid_alive_reports_a_dead_process():
+    assert live._pid_alive(999_999) is False
+
+
+def test_pid_alive_rejects_nonsense_pids():
+    for pid in (0, -1, -999):
+        assert live._pid_alive(pid) is False
