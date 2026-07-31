@@ -32,7 +32,7 @@ def test_defaults_are_sane(monkeypatch, tmp_path):
     assert config.window_hours == 5.0
     assert config.window_seconds == 18000.0
     assert config.alert_thresholds == (30, 10, 5)
-    assert config.sources == ("oauth", "statusline", "local")
+    assert config.sources == ("statusline", "oauth", "local")
     assert config.auto_trigger is True
 
 

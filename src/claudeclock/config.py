@@ -16,7 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 DEFAULT_STATE_DIR = Path.home() / ".claudeclock"
-VALID_SOURCES = ("oauth", "statusline", "local")
+VALID_SOURCES = ("statusline", "oauth", "local")
 
 
 class ConfigError(ValueError):
