@@ -115,13 +115,37 @@ def test_icon_tolerates_out_of_range_progress():
 # --------------------------------------------------------------------------
 
 
+def _tk_is_usable() -> bool:
+    """Probe Tk once, thoroughly.
+
+    Catching only TclError around `Tk()` is not enough: CI images ship broken
+    Tcl installs (the Windows setup-python runner has an incomplete
+    `tcl8.6` directory) where the failure surfaces from a later call and can
+    hang the run. Building and tearing down a real root plus a Canvas is the
+    only reliable check, and any exception at all means "skip".
+    """
+    try:
+        import tkinter as tk
+
+        root = tk.Tk()
+        root.withdraw()
+        tk.Canvas(root, width=10, height=10).destroy()
+        root.destroy()
+        return True
+    except Exception:
+        return False
+
+
+TK_USABLE = _tk_is_usable()
+
+
 @pytest.fixture
 def tk_root():
-    tk = pytest.importorskip("tkinter", reason="panel needs Tkinter")
-    try:
-        root = tk.Tk()
-    except tk.TclError:
-        pytest.skip("no display available")
+    if not TK_USABLE:
+        pytest.skip("Tk is unavailable or broken in this environment")
+    import tkinter as tk
+
+    root = tk.Tk()
     root.withdraw()
     yield root
     try:
