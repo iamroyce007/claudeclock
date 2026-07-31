@@ -30,7 +30,11 @@ TRANSCRIPT_ROOT = Path.home() / ".claude" / "projects"
 
 # Only inspect the tail of each transcript; these files can reach hundreds of
 # MB and we only ever care about recent activity.
-TAIL_BYTES = 256 * 1024
+TAIL_BYTES = 8 * 1024 * 1024
+
+# How far back to gather activity when chaining windows forward. Long enough
+# to reach a genuine idle gap for almost any usage pattern.
+LOOKBACK = timedelta(hours=24)
 
 
 class LocalInferenceSource:
@@ -64,7 +68,7 @@ class LocalInferenceSource:
                 raw={"basis": "anchor"},
             )
 
-        first_activity = self._first_activity_since(now - window)
+        first_activity = self._current_window_start(now, window)
         if first_activity is None:
             self.last_error = "no recent local Claude activity found"
             log.log(5, "local inference found no activity in window")
@@ -93,21 +97,51 @@ class LocalInferenceSource:
 
     # -- transcript scanning ------------------------------------------------
 
-    def _first_activity_since(self, cutoff: datetime) -> datetime | None:
-        """Earliest transcript timestamp at or after `cutoff`."""
-        if not self.transcript_root.exists():
+    def _current_window_start(
+        self, now: datetime, window: timedelta
+    ) -> datetime | None:
+        """Chain windows forward through activity to find the current one.
+
+        A window opens with the first request after the previous one elapsed,
+        so the start cannot be read off a rolling lookback: for someone active
+        continuously, "earliest activity in the last 5 hours" is just
+        "now - 5 hours", which drifts further from the truth the more you use
+        Claude. (Measured against the server's own figure, that naive approach
+        was 90 minutes out.)
+
+        Instead, walk every timestamp in order from well before the current
+        window: the first one opens a window, and any timestamp landing past
+        that window's end opens the next. The last window opened is the
+        current one.
+        """
+        stamps = sorted(self._activity_since(now - LOOKBACK))
+        if not stamps:
             return None
 
-        earliest: datetime | None = None
+        start = stamps[0]
+        for stamp in stamps:
+            if stamp >= start + window:
+                start = stamp
+
+        # If that window has already elapsed, no window is currently open -
+        # the next request will open one.
+        if start + window <= now:
+            return None
+        return start
+
+    def _activity_since(self, cutoff: datetime) -> list[datetime]:
+        """Every transcript timestamp at or after `cutoff`."""
+        if not self.transcript_root.exists():
+            return []
+
+        found: list[datetime] = []
         cutoff_epoch = cutoff.timestamp()
 
         for path in self._candidate_files(cutoff_epoch):
             for stamp in self._timestamps_in(path):
-                if stamp < cutoff:
-                    continue
-                if earliest is None or stamp < earliest:
-                    earliest = stamp
-        return earliest
+                if stamp >= cutoff:
+                    found.append(stamp)
+        return found
 
     def _candidate_files(self, cutoff_epoch: float) -> list[Path]:
         """Transcripts modified since the window opened."""

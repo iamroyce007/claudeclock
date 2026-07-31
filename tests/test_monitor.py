@@ -284,3 +284,50 @@ def test_poll_never_sails_past_the_reset(tmp_path, fake_claude):
         assert delay < 20 * 60, "would wake after the window already reset"
     finally:
         monitor.notifier.stop()
+
+
+def test_signal_forces_exit_under_a_gui(tmp_path, fake_claude, monkeypatch):
+    """A GUI front-end owns the main thread, so setting a flag is not enough.
+
+    Regression: SIGTERM logged "shutting down" but the process kept polling,
+    so `pkill` left a stale instance alive and relaunching re-activated the old
+    build instead of the newly installed one.
+    """
+    import signal as signal_mod
+    import threading as threading_mod
+
+    command, _ = fake_claude
+    config = make_config(tmp_path, command)
+    active = make_snapshot(datetime.now(timezone.utc) + timedelta(hours=2))
+    monitor = Monitor(config, headless=True, sources=[FakeSource([active])])
+
+    exits: list[int] = []
+    monkeypatch.setattr("os._exit", lambda code: exits.append(code))
+
+    timers: list = []
+    real_timer = threading_mod.Timer
+
+    def capture(interval, fn):
+        t = real_timer(0.01, fn)
+        timers.append(t)
+        return t
+
+    monkeypatch.setattr("threading.Timer", capture)
+
+    # Pretend a GUI front-end is driving it.
+    monitor._bg_thread = threading_mod.current_thread()
+    handlers = {}
+    monkeypatch.setattr(
+        signal_mod, "signal", lambda sig, fn: handlers.setdefault(sig, fn)
+    )
+    monitor._install_signal_handlers()
+
+    handler = handlers.get(signal_mod.SIGTERM)
+    assert handler is not None, "SIGTERM handler was not installed"
+    handler(signal_mod.SIGTERM, None)
+
+    assert monitor._stop.is_set()
+    assert timers, "no forced-exit timer was scheduled"
+    for t in timers:
+        t.join(2.0)
+    assert exits == [0], "the process would have survived SIGTERM"

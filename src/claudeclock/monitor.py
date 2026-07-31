@@ -17,6 +17,7 @@ while the network is touched once a minute.
 from __future__ import annotations
 
 import logging
+import os
 import signal
 import threading
 from datetime import datetime, timedelta, timezone
@@ -154,6 +155,21 @@ class Monitor:
         def handler(signum, _frame):  # type: ignore[no-untyped-def]
             log.info("received signal, shutting down", extra={"signal": signum})
             self._stop.set()
+
+            # Setting the event is enough for the terminal front-ends, whose
+            # loops check it. Under a GUI it is not: rumps/pystray own the main
+            # thread and keep their run loop going, so the process survives
+            # SIGTERM, keeps polling, and a relaunch just re-activates the
+            # stale instance instead of starting the new build. Give the
+            # graceful path a moment, then leave for real.
+            if self._bg_thread is not None:
+                def _force_exit() -> None:
+                    try:
+                        self.shutdown()
+                    finally:
+                        os._exit(0)
+
+                threading.Timer(2.0, _force_exit).start()
 
         for name in ("SIGINT", "SIGTERM", "SIGBREAK"):
             sig = getattr(signal, name, None)
