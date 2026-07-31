@@ -1,0 +1,125 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,tray]"
+
+      - name: Install macOS front-end
+        if: runner.os == 'macOS'
+        run: pip install "rumps>=0.4.0"
+
+      # The Tk-backed panel tests skip themselves without a display; give
+      # Linux one so they actually run somewhere on CI.
+      - name: Start virtual display
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb python3-tk
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+          Xvfb :99 -screen 0 1280x1024x24 &
+
+      - name: Run tests
+        run: pytest -q
+
+  macos:
+    name: macOS .dmg
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[macos]" py2app
+
+      - name: Build .dmg
+        env:
+          PYTHON: python
+        run: ./packaging/make_dmg.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windowsill-macos-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
+
+  windows:
+    name: Windows .exe
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[tray]" pyinstaller
+
+      - name: Build .exe
+        run: pyinstaller --noconfirm packaging/windowsill.spec
+
+      # Catches missing hidden imports and the certifi bundling problem before
+      # the binary reaches anyone.
+      - name: Smoke-test the executable
+        shell: pwsh
+        run: |
+          $out = & ".\dist\Windowsill.exe" --diagnose 2>&1 | Out-String
+          Write-Host $out
+          if ($out -notmatch "httpx\.Client\s+: OK") {
+            Write-Error "bundled executable failed its smoke test"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windowsill-windows-exe
+          path: dist/Windowsill.exe
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/Windowsill-macos-dmg/*.dmg
+            artifacts/Windowsill-windows-exe/Windowsill.exe
+          generate_release_notes: true
