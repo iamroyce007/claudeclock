@@ -67,7 +67,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Windowsill-macos-dmg
+          name: ClaudeClock-macos-dmg
           path: dist/*.dmg
           if-no-files-found: error
 
@@ -87,14 +87,14 @@ jobs:
           pip install -e ".[tray]" pyinstaller
 
       - name: Build .exe
-        run: pyinstaller --noconfirm packaging/windowsill.spec
+        run: pyinstaller --noconfirm packaging/claudeclock.spec
 
       # Catches missing hidden imports and the certifi bundling problem before
       # the binary reaches anyone.
       - name: Smoke-test the executable
         shell: pwsh
         run: |
-          $out = & ".\dist\Windowsill.exe" --diagnose 2>&1 | Out-String
+          $out = & ".\dist\ClaudeClock.exe" --diagnose 2>&1 | Out-String
           Write-Host $out
           if ($out -notmatch "httpx\.Client\s+: OK") {
             Write-Error "bundled executable failed its smoke test"
@@ -103,8 +103,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Windowsill-windows-exe
-          path: dist/Windowsill.exe
+          name: ClaudeClock-windows-exe
+          path: dist/ClaudeClock.exe
           if-no-files-found: error
 
   release:
@@ -122,6 +122,6 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Windowsill-macos-dmg/*.dmg
-            artifacts/Windowsill-windows-exe/Windowsill.exe
+            artifacts/ClaudeClock-macos-dmg/*.dmg
+            artifacts/ClaudeClock-windows-exe/ClaudeClock.exe
           generate_release_notes: true

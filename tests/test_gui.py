@@ -12,12 +12,12 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from windowsill import live
-from windowsill.tracker import State, WindowView
+from claudeclock import live
+from claudeclock.tracker import State, WindowView
 
 pytest.importorskip("PIL", reason="tray icon rendering needs Pillow")
 
-from windowsill.gui.tray import ICON_SIZE, render_icon  # noqa: E402
+from claudeclock.gui.tray import ICON_SIZE, render_icon  # noqa: E402
 
 
 def write_live(tmp_path, **kwargs):
@@ -69,7 +69,7 @@ def _pixels(image):
 
 def test_icon_colour_tracks_urgency():
     """A glance at the tray should convey urgency without reading the number."""
-    from windowsill.gui.tray import COLOURS
+    from claudeclock.gui.tray import COLOURS
 
     def dominant(image, colour):
         return sum(1 for px in _pixels(image) if px == colour)
@@ -92,7 +92,7 @@ def test_icon_label_is_ascii_only():
     """The fallback bitmap font renders non-ASCII as a tofu box."""
     import inspect
 
-    from windowsill.gui import tray
+    from claudeclock.gui import tray
 
     source = inspect.getsource(tray.render_icon)
     labels = [line for line in source.splitlines() if "label =" in line]
@@ -164,7 +164,7 @@ def tk_root():
 
 def make_panel(path, **kwargs):
     """Build a Panel, skipping if the toolkit cannot manage a second root."""
-    from windowsill.gui.panel import Panel
+    from claudeclock.gui.panel import Panel
 
     kwargs.setdefault("theme", "dark")
     try:
@@ -190,7 +190,7 @@ def test_panel_renders_connected_state(tmp_path, tk_root):
 
 def test_panel_uses_the_claude_palette(tmp_path, tk_root):
     """Dark ground and the terracotta accent, not Tk's defaults."""
-    from windowsill.gui.theme import DARK
+    from claudeclock.gui.theme import DARK
 
     path = write_live(tmp_path)
     panel = make_panel(path)
@@ -204,7 +204,7 @@ def test_panel_uses_the_claude_palette(tmp_path, tk_root):
 
 
 def test_panel_light_theme(tmp_path, tk_root):
-    from windowsill.gui.theme import LIGHT
+    from claudeclock.gui.theme import LIGHT
 
     panel = make_panel(write_live(tmp_path), theme="light")
     try:
@@ -215,7 +215,7 @@ def test_panel_light_theme(tmp_path, tk_root):
 
 
 def test_panel_arc_tracks_urgency_colour(tmp_path, tk_root):
-    from windowsill.gui.theme import DARK
+    from claudeclock.gui.theme import DARK
 
     panel = make_panel(write_live(tmp_path, remaining=timedelta(minutes=3)))
     try:
@@ -231,7 +231,7 @@ def test_panel_reports_a_missing_monitor(tmp_path, tk_root):
         panel.root.update()
         assert "Not connected" in panel.status_label.cget("text")
         assert panel.canvas.itemcget(panel.clock_text, "text") == "--:--:--"
-        assert "sill tray" in panel.footer.cget("text")
+        assert "cclock tray" in panel.footer.cget("text")
     finally:
         panel.root.destroy()
 

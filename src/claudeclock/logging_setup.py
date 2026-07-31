@@ -133,7 +133,7 @@ def setup_logging(
     for noisy in ("httpx", "httpcore", "apscheduler"):
         logging.getLogger(noisy).setLevel(max(numeric, logging.WARNING))
 
-    return logging.getLogger("sill")
+    return logging.getLogger("cclock")
 
 
 class EventLog:
@@ -143,7 +143,7 @@ class EventLog:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
-        self._log = logging.getLogger("sill.events")
+        self._log = logging.getLogger("cclock.events")
 
     def record(self, event: str, **fields: Any) -> dict[str, Any]:
         entry: dict[str, Any] = {

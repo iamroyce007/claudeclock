@@ -34,11 +34,11 @@ import httpx
 from ..auth import AuthError, Credentials, load_credentials, refresh_credentials
 from . import Confidence, Snapshot, parse_timestamp
 
-log = logging.getLogger("sill.source.oauth")
+log = logging.getLogger("cclock.source.oauth")
 
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
 OAUTH_BETA = "oauth-2025-04-20"
-USER_AGENT = "windowsill/1.0"
+USER_AGENT = "claudeclock/1.0"
 
 
 class UsageEndpointError(RuntimeError):
@@ -89,7 +89,7 @@ class OAuthUsageSource:
             else:
                 raise AuthError(
                     "stored access token has expired. Run `claude` once to refresh "
-                    "it, or set SILL_ALLOW_TOKEN_REFRESH=true."
+                    "it, or set CLAUDECLOCK_ALLOW_TOKEN_REFRESH=true."
                 )
         return self._creds
 

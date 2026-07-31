@@ -50,7 +50,7 @@ from ..live import (
     status_glyph,
 )
 
-log = logging.getLogger("sill.gui.macos")
+log = logging.getLogger("cclock.gui.macos")
 
 
 class LiveTimer:
@@ -186,21 +186,21 @@ class MenuBarApp(rumps.App):
         self._panel_process = spawn_panel()
         if self._panel_process is None:
             rumps.notification(
-                "Windowsill", "Could not open the detail window",
+                "ClaudeClock", "Could not open the detail window",
                 "See the log for details.",
             )
 
     def send_trigger(self, _sender) -> None:
         if self.monitor is None:
             rumps.notification(
-                "Windowsill", "Not available",
+                "ClaudeClock", "Not available",
                 "The monitor is not running in this process.",
             )
             return
         # Runs on a scheduler worker so the menu bar never blocks on the network.
         self.monitor.scheduler.add_job(self.monitor._rearm_job, "date")
         rumps.notification(
-            "Windowsill", "Re-arm requested",
+            "ClaudeClock", "Re-arm requested",
             f"Sending {self.config.trigger_prompt!r}…",
         )
 

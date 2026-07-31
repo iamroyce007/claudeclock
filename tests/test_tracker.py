@@ -10,10 +10,10 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from windowsill.config import Config
-from windowsill.logging_setup import EventLog
-from windowsill.sources import Confidence, Snapshot
-from windowsill.tracker import State, WindowTracker
+from claudeclock.config import Config
+from claudeclock.logging_setup import EventLog
+from claudeclock.sources import Confidence, Snapshot
+from claudeclock.tracker import State, WindowTracker
 
 
 class FakeSource:
@@ -551,7 +551,7 @@ def test_tick_fires_a_threshold_at_the_boundary(config, events):
 
 def test_reset_complete_settles_back_to_active(config, events, monkeypatch):
     """The transient state used to stick permanently."""
-    import windowsill.tracker as tracker_module
+    import claudeclock.tracker as tracker_module
 
     now = datetime.now(timezone.utc)
     script = [

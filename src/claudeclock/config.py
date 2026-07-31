@@ -15,7 +15,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-DEFAULT_STATE_DIR = Path.home() / ".windowsill"
+DEFAULT_STATE_DIR = Path.home() / ".claudeclock"
 VALID_SOURCES = ("oauth", "statusline", "local")
 
 
@@ -180,20 +180,20 @@ class Config:
                     resolved = candidate
                     break
 
-        state_dir = Path(_get("SILL_STATE_DIR", str(DEFAULT_STATE_DIR))).expanduser()
+        state_dir = Path(_get("CLAUDECLOCK_STATE_DIR", str(DEFAULT_STATE_DIR))).expanduser()
 
-        raw_sources = _get("SILL_SOURCES", ",".join(VALID_SOURCES))
+        raw_sources = _get("CLAUDECLOCK_SOURCES", ",".join(VALID_SOURCES))
         sources = tuple(s.strip().lower() for s in raw_sources.split(",") if s.strip())
         unknown = [s for s in sources if s not in VALID_SOURCES]
         if unknown:
             raise ConfigError(
-                f"SILL_SOURCES contains unknown source(s) {unknown}; "
+                f"CLAUDECLOCK_SOURCES contains unknown source(s) {unknown}; "
                 f"valid values are {list(VALID_SOURCES)}"
             )
         if not sources:
-            raise ConfigError("SILL_SOURCES must list at least one source")
+            raise ConfigError("CLAUDECLOCK_SOURCES must list at least one source")
 
-        raw_thresholds = _get("SILL_ALERT_THRESHOLDS", "30,10,5")
+        raw_thresholds = _get("CLAUDECLOCK_ALERT_THRESHOLDS", "30,10,5")
         try:
             thresholds = tuple(
                 sorted({int(t.strip()) for t in raw_thresholds.split(",") if t.strip()},
@@ -201,64 +201,64 @@ class Config:
             )
         except ValueError as exc:
             raise ConfigError(
-                f"SILL_ALERT_THRESHOLDS must be comma-separated integers, got {raw_thresholds!r}"
+                f"CLAUDECLOCK_ALERT_THRESHOLDS must be comma-separated integers, got {raw_thresholds!r}"
             ) from exc
         if any(t <= 0 for t in thresholds):
-            raise ConfigError("SILL_ALERT_THRESHOLDS values must be positive")
+            raise ConfigError("CLAUDECLOCK_ALERT_THRESHOLDS values must be positive")
 
         statusline_default = state_dir / "statusline.json"
         statusline_file = Path(
-            _get("SILL_STATUSLINE_FILE", str(statusline_default))
+            _get("CLAUDECLOCK_STATUSLINE_FILE", str(statusline_default))
         ).expanduser()
 
-        log_level = _get("SILL_LOG_LEVEL", "INFO").upper()
+        log_level = _get("CLAUDECLOCK_LOG_LEVEL", "INFO").upper()
         if verbose and log_level not in ("DEBUG", "TRACE"):
             log_level = "DEBUG"
         if log_level not in ("TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
-            raise ConfigError(f"SILL_LOG_LEVEL invalid: {log_level!r}")
+            raise ConfigError(f"CLAUDECLOCK_LOG_LEVEL invalid: {log_level!r}")
 
-        theme = _get("SILL_THEME", "dark").lower()
+        theme = _get("CLAUDECLOCK_THEME", "dark").lower()
         if theme not in ("dark", "light", "auto"):
             raise ConfigError(
-                f"SILL_THEME must be dark, light or auto; got {theme!r}"
+                f"CLAUDECLOCK_THEME must be dark, light or auto; got {theme!r}"
             )
 
-        backoff_min = _get_float("SILL_BACKOFF_MIN", 5.0, minimum=0.1)
-        backoff_max = _get_float("SILL_BACKOFF_MAX", 300.0, minimum=0.1)
+        backoff_min = _get_float("CLAUDECLOCK_BACKOFF_MIN", 5.0, minimum=0.1)
+        backoff_max = _get_float("CLAUDECLOCK_BACKOFF_MAX", 300.0, minimum=0.1)
         if backoff_max < backoff_min:
-            raise ConfigError("SILL_BACKOFF_MAX must be >= SILL_BACKOFF_MIN")
+            raise ConfigError("CLAUDECLOCK_BACKOFF_MAX must be >= CLAUDECLOCK_BACKOFF_MIN")
 
         return cls(
-            window_hours=_get_float("SILL_WINDOW_HOURS", 5.0, minimum=0.1),
-            poll_interval=_get_float("SILL_POLL_INTERVAL", 60.0, minimum=5.0),
-            ui_refresh=_get_float("SILL_UI_REFRESH", 1.0, minimum=0.1),
+            window_hours=_get_float("CLAUDECLOCK_WINDOW_HOURS", 5.0, minimum=0.1),
+            poll_interval=_get_float("CLAUDECLOCK_POLL_INTERVAL", 60.0, minimum=5.0),
+            ui_refresh=_get_float("CLAUDECLOCK_UI_REFRESH", 1.0, minimum=0.1),
             sources=sources,
             statusline_file=statusline_file,
-            oauth_token=_get_opt("SILL_OAUTH_TOKEN"),
-            allow_token_refresh=_get_bool("SILL_ALLOW_TOKEN_REFRESH", False),
-            auto_trigger=_get_bool("SILL_AUTO_TRIGGER", True),
-            trigger_prompt=_get("SILL_TRIGGER_PROMPT", "Hi"),
+            oauth_token=_get_opt("CLAUDECLOCK_OAUTH_TOKEN"),
+            allow_token_refresh=_get_bool("CLAUDECLOCK_ALLOW_TOKEN_REFRESH", False),
+            auto_trigger=_get_bool("CLAUDECLOCK_AUTO_TRIGGER", True),
+            trigger_prompt=_get("CLAUDECLOCK_TRIGGER_PROMPT", "Hi"),
             trigger_command=_get(
-                "SILL_TRIGGER_COMMAND", "claude -p {prompt} --output-format json"
+                "CLAUDECLOCK_TRIGGER_COMMAND", "claude -p {prompt} --output-format json"
             ),
-            trigger_model=_get_opt("SILL_TRIGGER_MODEL") or "claude-haiku-4-5-20251001",
-            trigger_delay=_get_float("SILL_TRIGGER_DELAY", 15.0, minimum=0.0),
-            trigger_timeout=_get_float("SILL_TRIGGER_TIMEOUT", 120.0, minimum=5.0),
-            trigger_max_retries=_get_int("SILL_TRIGGER_MAX_RETRIES", 5, minimum=0),
-            menubar_seconds=_get_bool("SILL_MENUBAR_SECONDS", True),
+            trigger_model=_get_opt("CLAUDECLOCK_TRIGGER_MODEL") or "claude-haiku-4-5-20251001",
+            trigger_delay=_get_float("CLAUDECLOCK_TRIGGER_DELAY", 15.0, minimum=0.0),
+            trigger_timeout=_get_float("CLAUDECLOCK_TRIGGER_TIMEOUT", 120.0, minimum=5.0),
+            trigger_max_retries=_get_int("CLAUDECLOCK_TRIGGER_MAX_RETRIES", 5, minimum=0),
+            menubar_seconds=_get_bool("CLAUDECLOCK_MENUBAR_SECONDS", True),
             theme=theme,
             alert_thresholds=thresholds,
-            desktop_notifications=_get_bool("SILL_DESKTOP_NOTIFICATIONS", True),
-            webhook_url=_get_opt("SILL_WEBHOOK_URL"),
-            discord_webhook_url=_get_opt("SILL_DISCORD_WEBHOOK_URL"),
-            slack_webhook_url=_get_opt("SILL_SLACK_WEBHOOK_URL"),
-            webhook_timeout=_get_float("SILL_WEBHOOK_TIMEOUT", 10.0, minimum=1.0),
+            desktop_notifications=_get_bool("CLAUDECLOCK_DESKTOP_NOTIFICATIONS", True),
+            webhook_url=_get_opt("CLAUDECLOCK_WEBHOOK_URL"),
+            discord_webhook_url=_get_opt("CLAUDECLOCK_DISCORD_WEBHOOK_URL"),
+            slack_webhook_url=_get_opt("CLAUDECLOCK_SLACK_WEBHOOK_URL"),
+            webhook_timeout=_get_float("CLAUDECLOCK_WEBHOOK_TIMEOUT", 10.0, minimum=1.0),
             state_dir=state_dir,
             log_level=log_level,
-            log_json=_get_bool("SILL_LOG_JSON", False),
-            log_max_bytes=_get_int("SILL_LOG_MAX_BYTES", 5 * 1024 * 1024, minimum=1024),
-            log_backup_count=_get_int("SILL_LOG_BACKUP_COUNT", 5, minimum=0),
-            clock_jump_threshold=_get_float("SILL_CLOCK_JUMP_THRESHOLD", 90.0, minimum=5.0),
+            log_json=_get_bool("CLAUDECLOCK_LOG_JSON", False),
+            log_max_bytes=_get_int("CLAUDECLOCK_LOG_MAX_BYTES", 5 * 1024 * 1024, minimum=1024),
+            log_backup_count=_get_int("CLAUDECLOCK_LOG_BACKUP_COUNT", 5, minimum=0),
+            clock_jump_threshold=_get_float("CLAUDECLOCK_CLOCK_JUMP_THRESHOLD", 90.0, minimum=5.0),
             backoff_min=backoff_min,
             backoff_max=backoff_max,
             verbose=verbose,

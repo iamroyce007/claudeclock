@@ -22,7 +22,7 @@ from ..config import Config
 from ..live import read, tray_tooltip, urgency
 from .theme import DARK, palette, urgency_colour
 
-log = logging.getLogger("sill.gui.tray")
+log = logging.getLogger("cclock.gui.tray")
 
 ICON_SIZE = 64
 
@@ -95,7 +95,7 @@ class TrayApp:
         self._last_key: tuple | None = None
 
         self.icon = pystray.Icon(
-            "windowsill",
+            "claudeclock",
             icon=render_icon(None, 0.0, "unknown"),
             title="Claude Usage Window",
             menu=pystray.Menu(

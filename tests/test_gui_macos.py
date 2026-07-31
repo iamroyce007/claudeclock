@@ -22,7 +22,7 @@ from AppKit import NSEventTrackingRunLoopMode  # noqa: E402
 from CoreFoundation import CFRunLoopAddCommonMode, CFRunLoopGetCurrent  # noqa: E402
 from Foundation import NSDate, NSDefaultRunLoopMode, NSRunLoop  # noqa: E402
 
-from windowsill.gui.macos import LiveTimer  # noqa: E402
+from claudeclock.gui.macos import LiveTimer  # noqa: E402
 
 INTERVAL = 0.2
 DURATION = 1.5

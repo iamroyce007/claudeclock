@@ -219,7 +219,7 @@ class Dashboard:
 
 
 def render_once(config: Config, view: WindowView, console: Console | None = None) -> None:
-    """Print a single non-interactive snapshot (used by `sill status`)."""
+    """Print a single non-interactive snapshot (used by `cclock status`)."""
     console = console or Console()
     console.print(Dashboard(config).render(view))
 

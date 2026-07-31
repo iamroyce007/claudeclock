@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 
 from .config import Config
 
-log = logging.getLogger("sill.trigger")
+log = logging.getLogger("cclock.trigger")
 
 
 @dataclass(frozen=True)
@@ -58,7 +58,7 @@ def _resolve_executable(argv: list[str]) -> list[str]:
     resolved = shutil.which(argv[0])
     if resolved is None:
         raise TriggerError(
-            f"could not find {argv[0]!r} on PATH. Set SILL_TRIGGER_COMMAND to an "
+            f"could not find {argv[0]!r} on PATH. Set CLAUDECLOCK_TRIGGER_COMMAND to an "
             "absolute path, or make sure Claude Code is installed."
         )
     return [resolved, *argv[1:]]
@@ -217,7 +217,7 @@ def _is_usage_limited(stdout: str, stderr: str) -> bool:
 
 
 def dry_run_description(config: Config) -> str:
-    """What `send_trigger` would execute, for `sill check` and the UI."""
+    """What `send_trigger` would execute, for `cclock check` and the UI."""
     argv = config.trigger_argv()
     resolved = shutil.which(argv[0])
     location = resolved or f"{argv[0]} (NOT FOUND on PATH)"

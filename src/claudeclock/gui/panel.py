@@ -47,7 +47,7 @@ class Panel:
         self.p = palette(theme)
 
         self.root = tk.Tk()
-        self.root.title("Windowsill")
+        self.root.title("ClaudeClock")
         self.root.configure(bg=self.p.bg)
         self.root.resizable(False, False)
         self.root.attributes("-topmost", True)
@@ -83,7 +83,7 @@ class Panel:
         self.status_label.pack(side="left")
 
         tk.Label(
-            header, text="windowsill", font=self.f_wordmark,
+            header, text="claudeclock", font=self.f_wordmark,
             bg=p.bg, fg=p.subtle, anchor="e",
         ).pack(side="right")
 
@@ -178,7 +178,7 @@ class Panel:
             self.pct_label.config(text="")
             for label in self.rows.values():
                 label.config(text="—")
-            self.footer.config(text="Start it from the menu bar, or run:  sill tray")
+            self.footer.config(text="Start it from the menu bar, or run:  cclock tray")
             return
 
         seconds = state.remaining_seconds

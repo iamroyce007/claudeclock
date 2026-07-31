@@ -1,6 +1,6 @@
 """Entry point for the bundled desktop app.
 
-Distinct from the `sill` console script because a double-clicked app has
+Distinct from the `cclock` console script because a double-clicked app has
 different needs: no terminal to print a traceback into, no shell PATH, and no
 argv worth parsing. It goes straight to the menu bar / tray front-end and
 routes any startup failure to a visible dialog rather than a silent exit.
@@ -114,7 +114,7 @@ def _report(message: str, detail: str = "") -> None:
             body = (message + ("\n\n" + detail if detail else ""))[:900]
             subprocess.run(
                 ["osascript", "-e",
-                 'display dialog {} with title "Windowsill" buttons {{"OK"}} '
+                 'display dialog {} with title "ClaudeClock" buttons {{"OK"}} '
                  'default button 1 with icon caution'.format(
                      _applescript_string(body))],
                 capture_output=True, timeout=60, check=False,
@@ -131,7 +131,7 @@ def _diagnose() -> int:
     """Print what the bundle resolved at runtime.
 
     A packaged app has no terminal, so when it fails to start there is nothing
-    to inspect. `Windowsill.app/Contents/MacOS/Windowsill --diagnose` prints
+    to inspect. `ClaudeClock.app/Contents/MacOS/ClaudeClock --diagnose` prints
     the environment the app actually sees.
     """
     print(f"frozen        : {getattr(sys, 'frozen', None)}")
@@ -170,10 +170,10 @@ def main() -> int:
         return _diagnose()
 
     try:
-        from windowsill.config import Config, ConfigError
-        from windowsill.logging_setup import install_excepthook, setup_logging
+        from claudeclock.config import Config, ConfigError
+        from claudeclock.logging_setup import install_excepthook, setup_logging
     except Exception:
-        _report("Windowsill could not start.", traceback.format_exc())
+        _report("ClaudeClock could not start.", traceback.format_exc())
         return 1
 
     try:
@@ -193,24 +193,24 @@ def main() -> int:
     )
     install_excepthook(logger)
 
-    # `sill panel` is spawned as a subprocess by the front-ends. Inside a
-    # bundle there is no `python -m windowsill` to call, so the app re-execs
+    # `cclock panel` is spawned as a subprocess by the front-ends. Inside a
+    # bundle there is no `python -m claudeclock` to call, so the app re-execs
     # itself with this marker instead.
-    if os.environ.get("WINDOWSILL_PANEL") == "1" or "--panel" in sys.argv:
-        from windowsill.gui.app import run_panel
+    if os.environ.get("CLAUDECLOCK_PANEL") == "1" or "--panel" in sys.argv:
+        from claudeclock.gui.app import run_panel
 
         return run_panel(config)
 
     try:
-        from windowsill.gui.app import UnsupportedFrontend, run
+        from claudeclock.gui.app import UnsupportedFrontend, run
 
         return run(config)
     except UnsupportedFrontend as exc:
-        _report("Windowsill cannot show a menu bar item", str(exc))
+        _report("ClaudeClock cannot show a menu bar item", str(exc))
         return 2
     except Exception:
         logger.exception("fatal error in the menu bar app")
-        _report("Windowsill stopped unexpectedly.", traceback.format_exc())
+        _report("ClaudeClock stopped unexpectedly.", traceback.format_exc())
         return 1
 
 

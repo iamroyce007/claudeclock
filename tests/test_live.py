@@ -12,8 +12,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from windowsill import live
-from windowsill.tracker import State, WindowView
+from claudeclock import live
+from claudeclock.tracker import State, WindowView
 
 
 def make_view(**kwargs) -> WindowView:

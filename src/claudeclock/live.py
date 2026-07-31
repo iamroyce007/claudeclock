@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-log = logging.getLogger("sill.live")
+log = logging.getLogger("cclock.live")
 
 # A snapshot older than this means the writer is gone, not merely slow.
 DEFAULT_MAX_AGE = 10.0
@@ -269,7 +269,7 @@ def menubar_title(state: LiveState, *, show_seconds: bool = True) -> str:
     `show_seconds` gives a true per-second clock (`● 4:12:37`). The compact
     form (`● 4h12m`) is a couple of characters shorter and only changes once a
     minute above an hour, which some people prefer next to their other menu bar
-    items; `SILL_MENUBAR_SECONDS=false` selects it.
+    items; `CLAUDECLOCK_MENUBAR_SECONDS=false` selects it.
     """
     if not state.connected:
         return "⏳ —"

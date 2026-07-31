@@ -1,6 +1,6 @@
 """Platform dispatch for the menu bar / tray front-end.
 
-`sill tray` starts the monitor on background threads and then hands the main
+`cclock tray` starts the monitor on background threads and then hands the main
 thread to whichever native toolkit this platform uses:
 
 * macOS   - `rumps`, giving a real menu bar item whose *title* is the countdown
@@ -21,7 +21,7 @@ from pathlib import Path
 
 from ..config import Config
 
-log = logging.getLogger("sill.gui")
+log = logging.getLogger("cclock.gui")
 
 
 def spawn_panel() -> subprocess.Popen | None:
@@ -29,7 +29,7 @@ def spawn_panel() -> subprocess.Popen | None:
 
     How to do that depends on how we are running:
 
-    * **source checkout** - `python -m windowsill panel`
+    * **source checkout** - `python -m claudeclock panel`
     * **PyInstaller .exe** - re-exec the executable with `--panel`
     * **py2app .app** - `open -n` a second instance of the bundle. There is no
       `python -m` inside a bundle, and launching the inner binary directly
@@ -37,16 +37,16 @@ def spawn_panel() -> subprocess.Popen | None:
     """
     frozen = getattr(sys, "frozen", False)
     env = os.environ.copy()
-    env["WINDOWSILL_PANEL"] = "1"
+    env["CLAUDECLOCK_PANEL"] = "1"
 
     if frozen == "macosx_app":
-        # .../Windowsill.app/Contents/MacOS/Windowsill -> .../Windowsill.app
+        # .../ClaudeClock.app/Contents/MacOS/ClaudeClock -> .../ClaudeClock.app
         bundle = Path(sys.executable).resolve().parents[2]
         argv = ["open", "-n", "-a", str(bundle), "--args", "--panel"]
     elif frozen:
         argv = [sys.executable, "--panel"]
     else:
-        argv = [sys.executable, "-m", "windowsill", "panel"]
+        argv = [sys.executable, "-m", "claudeclock", "panel"]
 
     try:
         return subprocess.Popen(
@@ -69,7 +69,7 @@ class UnsupportedFrontend(RuntimeError):
 
 def _install_hint(extra: str) -> str:
     return (
-        f"pip install 'windowsill[{extra}]'\n"
+        f"pip install 'claudeclock[{extra}]'\n"
         f"  (or: pip install {'rumps' if extra == 'macos' else 'pystray Pillow'})"
     )
 

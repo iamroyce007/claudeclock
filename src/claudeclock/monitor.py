@@ -33,7 +33,7 @@ from .tracker import State, WindowTracker, WindowView, build_sources
 from .trigger import dry_run_description, send_trigger
 from .ui import Dashboard, format_duration, format_local, plain_status_line
 
-log = logging.getLogger("sill.monitor")
+log = logging.getLogger("cclock.monitor")
 
 REARM_JOB_ID = "rearm"
 
@@ -130,7 +130,7 @@ class Monitor:
         self._startup()
         self._on_tick = on_tick
         self._bg_thread = threading.Thread(
-            target=self._background_loop, name="sill-monitor", daemon=True
+            target=self._background_loop, name="cclock-monitor", daemon=True
         )
         self._bg_thread.start()
 

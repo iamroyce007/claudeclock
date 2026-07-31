@@ -44,7 +44,7 @@ from .logging_setup import EventLog
 from .sources import Confidence, Snapshot, Source, parse_timestamp
 from .sources.local import LocalInferenceSource, detect_clock_jump
 
-log = logging.getLogger("sill.tracker")
+log = logging.getLogger("cclock.tracker")
 
 _CONFIDENCE_RANK = {
     Confidence.INFERRED: 0,

@@ -22,9 +22,9 @@ import httpx
 
 from .config import Config
 
-log = logging.getLogger("sill.notify")
+log = logging.getLogger("cclock.notify")
 
-APP_NAME = "Windowsill"
+APP_NAME = "ClaudeClock"
 
 
 @dataclass(frozen=True)
@@ -240,7 +240,7 @@ def _slack_payload(note: Notification) -> dict[str, Any]:
 
 def _generic_payload(note: Notification) -> dict[str, Any]:
     return {
-        "source": "windowsill",
+        "source": "claudeclock",
         "title": note.title,
         "message": note.message,
         "level": note.level,
@@ -263,7 +263,7 @@ class Notifier:
         self.config = config
         self._queue: queue.Queue[Any] = queue.Queue(maxsize=100)
         self._thread = threading.Thread(
-            target=self._run, name="sill-notifier", daemon=True
+            target=self._run, name="cclock-notifier", daemon=True
         )
         self._started = False
 

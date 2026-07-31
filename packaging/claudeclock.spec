@@ -1,9 +1,9 @@
 # PyInstaller spec for the Windows build.
 #
 #   pip install pyinstaller
-#   pyinstaller packaging/windowsill.spec
+#   pyinstaller packaging/claudeclock.spec
 #
-# Produces dist/Windowsill.exe - a single self-contained file with its own
+# Produces dist/ClaudeClock.exe - a single self-contained file with its own
 # Python runtime. `console=False` is what keeps a terminal window from
 # appearing behind the tray icon.
 #
@@ -35,9 +35,9 @@ a = Analysis(
     binaries=[],
     datas=datas,
     hiddenimports=[
-        "windowsill",
-        "windowsill.gui.tray",
-        "windowsill.gui.panel",
+        "claudeclock",
+        "claudeclock.gui.tray",
+        "claudeclock.gui.panel",
         "pystray._win32",
         "PIL._tkinter_finder",
         # APScheduler resolves these by entry point at runtime, so static
@@ -72,7 +72,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name="Windowsill",
+    name="ClaudeClock",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -85,5 +85,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=str(ROOT / "assets" / "windowsill.ico"),
+    icon=str(ROOT / "assets" / "claudeclock.ico"),
 )

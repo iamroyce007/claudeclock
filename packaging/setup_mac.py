@@ -1,4 +1,4 @@
-"""py2app build for Windowsill.app.
+"""py2app build for ClaudeClock.app.
 
 Produces a self-contained macOS bundle: its own Python runtime, no venv, no
 terminal, no `pip install` on the target machine. Double-click it and it lives
@@ -28,20 +28,20 @@ sys.path.insert(0, str(ROOT / "src"))
 # output paths below are absolute so the artefacts still land in the project.
 os.chdir(Path(__file__).resolve().parent)
 
-from windowsill import __version__  # noqa: E402
+from claudeclock import __version__  # noqa: E402
 
 APP = [str(ROOT / "packaging" / "app_entry.py")]
 
 OPTIONS = {
     "argv_emulation": False,
-    "iconfile": str(ROOT / "assets" / "Windowsill.icns"),
+    "iconfile": str(ROOT / "assets" / "ClaudeClock.icns"),
     "plist": {
-        "CFBundleName": "Windowsill",
-        "CFBundleDisplayName": "Windowsill",
-        "CFBundleIdentifier": "dev.windowsill.app",
+        "CFBundleName": "ClaudeClock",
+        "CFBundleDisplayName": "ClaudeClock",
+        "CFBundleIdentifier": "dev.claudeclock.app",
         "CFBundleVersion": __version__,
         "CFBundleShortVersionString": __version__,
-        "CFBundleExecutable": "Windowsill",
+        "CFBundleExecutable": "ClaudeClock",
         # Menu bar accessory: no Dock icon, no app switcher entry.
         "LSUIElement": True,
         "LSMinimumSystemVersion": "11.0",
@@ -52,7 +52,7 @@ OPTIONS = {
         "NSAppTransportSecurity": {"NSAllowsArbitraryLoads": False},
     },
     "packages": [
-        "windowsill",
+        "claudeclock",
         "rumps",
         "httpx",
         "apscheduler",
@@ -85,7 +85,7 @@ OPTIONS = {
 }
 
 setup(
-    name="Windowsill",
+    name="ClaudeClock",
     app=APP,
     version=__version__,
     options={"py2app": OPTIONS},

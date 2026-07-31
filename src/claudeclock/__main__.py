@@ -1,4 +1,4 @@
-"""Allow `python -m windowsill`."""
+"""Allow `python -m claudeclock`."""
 
 import sys
 

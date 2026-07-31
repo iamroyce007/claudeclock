@@ -1,5 +1,5 @@
 [project]
-name = "windowsill"
+name = "claudeclock"
 version = "1.0.0"
 description = "Live monitor for the Claude 5-hour usage window, with automatic session re-arming."
 readme = "README.md"
@@ -27,17 +27,17 @@ gui = [
 ]
 
 [project.scripts]
-sill = "windowsill.cli:main"
-windowsill = "windowsill.cli:main"
+cclock = "claudeclock.cli:main"
+claudeclock = "claudeclock.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/windowsill"]
+packages = ["src/claudeclock"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ""
-filterwarnings = ["error::DeprecationWarning:windowsill.*"]
+filterwarnings = ["error::DeprecationWarning:claudeclock.*"]

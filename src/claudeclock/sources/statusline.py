@@ -8,7 +8,7 @@ on every render. Since v2.x that blob carries::
       "seven_day":  {"used_percentage": <0-100>, "resets_at": <epoch seconds>}
     }
 
-`sill install-statusline` registers a tiny shim that tees this blob to a state
+`cclock install-statusline` registers a tiny shim that tees this blob to a state
 file, which this source then reads. It costs no network calls and works while
 offline, but it only updates while a Claude Code session is actually rendering
 - hence "reported" rather than "authoritative", and hence the staleness guard.
@@ -24,7 +24,7 @@ from typing import Any
 
 from . import Confidence, Snapshot, parse_timestamp
 
-log = logging.getLogger("sill.source.statusline")
+log = logging.getLogger("cclock.source.statusline")
 
 # Beyond this, a statusline reading tells us more about when Claude Code was
 # last open than about the current window.
@@ -46,7 +46,7 @@ class StatuslineSource:
         if not self.path.exists():
             if not self._warned_missing:
                 log.debug(
-                    "statusline file absent; run `sill install-statusline` to enable "
+                    "statusline file absent; run `cclock install-statusline` to enable "
                     "this source",
                     extra={"path": str(self.path)},
                 )
@@ -131,10 +131,10 @@ class StatuslineSource:
 
 # NOTE: substituted with a plain string replace, not str.format / %-formatting,
 # so the script body can use braces and % freely without escaping games.
-_TARGET_SENTINEL = "__SILL_TARGET_PATH__"
+_TARGET_SENTINEL = "__CLAUDECLOCK_TARGET_PATH__"
 
 SHIM_SOURCE = '''#!/usr/bin/env python3
-"""Claude Code statusLine shim installed by windowsill.
+"""Claude Code statusLine shim installed by claudeclock.
 
 Reads the statusline JSON on stdin, tees it to a state file for the monitor,
 and prints a one-line status back to Claude Code. Never fails loudly: a broken
@@ -146,7 +146,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 
-TARGET = os.environ.get("SILL_STATUSLINE_FILE") or r"__SILL_TARGET_PATH__"
+TARGET = os.environ.get("CLAUDECLOCK_STATUSLINE_FILE") or r"__CLAUDECLOCK_TARGET_PATH__"
 
 
 def main():

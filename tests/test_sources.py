@@ -7,10 +7,10 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from windowsill.sources import Confidence, Snapshot, parse_timestamp
-from windowsill.sources.local import detect_clock_jump
-from windowsill.sources.oauth_usage import OAuthUsageSource
-from windowsill.sources.statusline import StatuslineSource, render_shim
+from claudeclock.sources import Confidence, Snapshot, parse_timestamp
+from claudeclock.sources.local import detect_clock_jump
+from claudeclock.sources.oauth_usage import OAuthUsageSource
+from claudeclock.sources.statusline import StatuslineSource, render_shim
 
 
 # --------------------------------------------------------------------------
@@ -224,7 +224,7 @@ def test_generated_shim_is_valid_python(tmp_path):
     code = render_shim(target)
     compile(code, "shim.py", "exec")
     assert str(target) in code
-    assert "__SILL_TARGET_PATH__" not in code, "sentinel was not substituted"
+    assert "__CLAUDECLOCK_TARGET_PATH__" not in code, "sentinel was not substituted"
 
 
 # --------------------------------------------------------------------------

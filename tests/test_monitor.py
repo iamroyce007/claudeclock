@@ -15,9 +15,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from windowsill.config import Config
-from windowsill.monitor import REARM_JOB_ID, Monitor
-from windowsill.tracker import State
+from claudeclock.config import Config
+from claudeclock.monitor import REARM_JOB_ID, Monitor
+from claudeclock.tracker import State
 
 from .test_tracker import FakeSource, make_snapshot
 

@@ -24,7 +24,7 @@ from pathlib import Path
 
 from . import Confidence, Snapshot, parse_timestamp
 
-log = logging.getLogger("sill.source.local")
+log = logging.getLogger("cclock.source.local")
 
 TRANSCRIPT_ROOT = Path.home() / ".claude" / "projects"
 

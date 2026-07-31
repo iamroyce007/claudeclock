@@ -22,7 +22,7 @@ console = Console()
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="sill",
+        prog="cclock",
         description=(
             "Monitor the Claude 5-hour usage window in real time, and "
             "automatically open the next one when it resets."
@@ -30,26 +30,26 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "examples:\n"
-            "  sill tray                    menu bar (macOS) / taskbar (Windows) app\n"
-            "  sill panel                   just the detail window\n"
-            "  sill run                     live dashboard, auto re-arm enabled\n"
-            "  sill run --no-ui             headless, for background/service use\n"
-            "  sill status                  one-shot snapshot, then exit\n"
-            "  sill status --json           machine-readable snapshot\n"
-            "  sill check                   verify auth, sources and trigger wiring\n"
-            "  sill install-statusline      enable the offline statusline source\n"
-            "  sill log --tail 30           recent resets, triggers, session starts\n"
-            "  sill test-notify             fire a test notification everywhere\n"
+            "  cclock tray                    menu bar (macOS) / taskbar (Windows) app\n"
+            "  cclock panel                   just the detail window\n"
+            "  cclock run                     live dashboard, auto re-arm enabled\n"
+            "  cclock run --no-ui             headless, for background/service use\n"
+            "  cclock status                  one-shot snapshot, then exit\n"
+            "  cclock status --json           machine-readable snapshot\n"
+            "  cclock check                   verify auth, sources and trigger wiring\n"
+            "  cclock install-statusline      enable the offline statusline source\n"
+            "  cclock log --tail 30           recent resets, triggers, session starts\n"
+            "  cclock test-notify             fire a test notification everywhere\n"
         ),
     )
-    parser.add_argument("--version", action="version", version=f"sill {__version__}")
+    parser.add_argument("--version", action="version", version=f"cclock {__version__}")
     parser.add_argument(
         "-c", "--config", metavar="PATH",
-        help="path to a .env file (default: ./.env, then ~/.windowsill/.env)",
+        help="path to a .env file (default: ./.env, then ~/.claudeclock/.env)",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true",
-        help="enable debug logging (equivalent to SILL_LOG_LEVEL=DEBUG)",
+        help="enable debug logging (equivalent to CLAUDECLOCK_LOG_LEVEL=DEBUG)",
     )
     parser.add_argument(
         "--trace", action="store_true",
@@ -110,7 +110,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _load(args: argparse.Namespace) -> Config:
     if args.trace:
-        os.environ["SILL_LOG_LEVEL"] = "TRACE"
+        os.environ["CLAUDECLOCK_LOG_LEVEL"] = "TRACE"
     config = Config.load(args.config, verbose=args.verbose or args.trace)
     config.ensure_state_dir()
     return config
@@ -196,7 +196,7 @@ def cmd_check(config: Config, args: argparse.Namespace) -> int:
 
     _init_logging(config, console_output=False)
 
-    table = Table(title="windowsill diagnostics", title_style="bold",
+    table = Table(title="claudeclock diagnostics", title_style="bold",
                   show_lines=False, header_style="bold grey70")
     table.add_column("Check", style="grey70", no_wrap=True)
     table.add_column("Result")
@@ -265,7 +265,7 @@ def cmd_check(config: Config, args: argparse.Namespace) -> int:
         else:
             detail.append_text(warn)
             detail.append(
-                "  not installed — run `sill install-statusline`", style="yellow"
+                "  not installed — run `cclock install-statusline`", style="yellow"
             )
         table.add_row("Statusline source", detail)
 
@@ -402,7 +402,7 @@ def cmd_install_statusline(config: Config, args: argparse.Namespace) -> int:
         return 1
 
     if settings_path.exists():
-        backup = settings_path.with_suffix(".json.windowsill-backup")
+        backup = settings_path.with_suffix(".json.claudeclock-backup")
         backup.write_text(json.dumps(settings, indent=2), encoding="utf-8")
         console.print(f"[grey62]backed up existing settings to {backup}[/grey62]")
 
@@ -521,7 +521,7 @@ def main(argv: list[str] | None = None) -> int:
         console.print("\n[grey62]interrupted[/grey62]")
         return 130
     except Exception as exc:  # noqa: BLE001 - top level guard
-        logging.getLogger("sill").exception("command failed")
+        logging.getLogger("cclock").exception("command failed")
         console.print(f"[bold red]error:[/bold red] {exc}")
         if args.verbose or args.trace:
             raise

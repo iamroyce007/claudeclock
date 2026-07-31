@@ -1,10 +1,10 @@
-# Windowsill
+# ClaudeClock
 
 A live countdown of your Claude **5-hour usage window**, in the macOS menu bar
 and the Windows taskbar. It tells you when the window is about to lapse, and
 opens the next one automatically when it does.
 
-<img src="assets/icon.png" width="96" alt="Windowsill">
+<img src="assets/icon.png" width="96" alt="ClaudeClock">
 
 ```
 menu bar:   ● 3:42:17
@@ -76,7 +76,7 @@ So "automatically start the next window" necessarily means "send something."
 That is what the re-arm step does: one tiny prompt (`"Hi"` by default) on the
 cheapest model, through `claude -p`, roughly 15 seconds after the old window
 lapses. It costs a negligible slice of the window it opens. Set
-`SILL_AUTO_TRIGGER=false` (or run `sill run --no-trigger`) to observe only.
+`CLAUDECLOCK_AUTO_TRIGGER=false` (or run `cclock run --no-trigger`) to observe only.
 
 ---
 
@@ -86,11 +86,11 @@ lapses. It costs a negligible slice of the window it opens. Set
 
 Grab the latest [release](../../releases/latest):
 
-* **macOS** — open `Windowsill-x.y.z.dmg`, drag the app to Applications, launch
+* **macOS** — open `ClaudeClock-x.y.z.dmg`, drag the app to Applications, launch
   it. It appears in the menu bar with no Dock icon. The build is ad-hoc signed
   rather than notarised, so on first launch macOS will call it "unidentified":
   right-click the app, choose **Open**, confirm once.
-* **Windows** — download `Windowsill.exe` and run it. It appears in the
+* **Windows** — download `ClaudeClock.exe` and run it. It appears in the
   taskbar tray. SmartScreen will warn on first run for the same reason; choose
   **More info → Run anyway**.
 
@@ -119,7 +119,7 @@ gives you the terminal tool with no GUI dependencies.
 Then confirm everything is wired up:
 
 ```bash
-sill check
+cclock check
 ```
 
 That verifies credentials, hits the usage endpoint once, resolves the re-arm
@@ -130,20 +130,20 @@ command on `PATH`, and lists your notification channels.
 ## Use
 
 ```bash
-sill tray                 # menu bar (macOS) / taskbar (Windows), live countdown
-sill panel                # just the detail window, attaches to a running monitor
-sill run                  # live dashboard, auto re-arm on (default command)
-sill run --no-ui          # headless, for background/service use
-sill run --no-trigger     # observe only, never send anything
-sill status               # one-shot snapshot, then exit
-sill status --json        # machine-readable, for scripts and status bars
-sill check                # diagnostics
-sill log --tail 30        # the event ledger
-sill test-notify          # fire a test notification on every channel
-sill trigger --dry-run    # show the exact re-arm command
+cclock tray                 # menu bar (macOS) / taskbar (Windows), live countdown
+cclock panel                # just the detail window, attaches to a running monitor
+cclock run                  # live dashboard, auto re-arm on (default command)
+cclock run --no-ui          # headless, for background/service use
+cclock run --no-trigger     # observe only, never send anything
+cclock status               # one-shot snapshot, then exit
+cclock status --json        # machine-readable, for scripts and status bars
+cclock check                # diagnostics
+cclock log --tail 30        # the event ledger
+cclock test-notify          # fire a test notification on every channel
+cclock trigger --dry-run    # show the exact re-arm command
 ```
 
-`sill status --json` is the integration point if you want to drive something
+`cclock status --json` is the integration point if you want to drive something
 else from this:
 
 ```json
@@ -161,7 +161,7 @@ else from this:
 ### Optional: the offline source
 
 ```bash
-sill install-statusline
+cclock install-statusline
 ```
 
 Writes a small shim and registers it as your Claude Code `statusLine`. The shim
@@ -175,7 +175,7 @@ already have unless you pass `--force`.
 ## Menu bar and taskbar
 
 ```bash
-sill tray
+cclock tray
 ```
 
 One command: it starts the monitor *and* the platform's native front-end.
@@ -192,7 +192,7 @@ minutes remaining in the middle, in the same urgency colours. Hovering gives
 the full status; left-click opens the detail window.
 
 Both open the same small detail window, which you can also launch on its own
-with `sill panel` — a big countdown, a progress bar, session start, reset time,
+with `cclock panel` — a big countdown, a progress bar, session start, reset time,
 and which source is answering. Escape dismisses it.
 
 ### How the pieces fit
@@ -219,7 +219,7 @@ stalled" by checking whether the writing PID is still alive.
 by `tray`.
 
 **Windows** — Task Scheduler, "At log on", running
-`.venv\Scripts\pythonw.exe -m sill tray` (note `pythonw`, so no console window
+`.venv\Scripts\pythonw.exe -m cclock tray` (note `pythonw`, so no console window
 appears behind the tray icon).
 
 ---
@@ -231,19 +231,19 @@ worth knowing:
 
 | Variable | Default | Notes |
 |---|---|---|
-| `SILL_POLL_INTERVAL` | `60` | seconds between endpoint polls |
-| `SILL_SOURCES` | `oauth,statusline,local` | priority order; first usable answer wins |
-| `SILL_AUTO_TRIGGER` | `true` | send the re-arm prompt when the window lapses |
-| `SILL_TRIGGER_PROMPT` | `Hi` | what gets sent |
-| `SILL_TRIGGER_MODEL` | `claude-haiku-4-5-20251001` | cheapest available |
-| `SILL_ALERT_THRESHOLDS` | `30,10,5` | minutes remaining, comma-separated |
-| `SILL_DISCORD_WEBHOOK_URL` | — | optional |
-| `SILL_SLACK_WEBHOOK_URL` | — | optional |
-| `SILL_WEBHOOK_URL` | — | optional, generic JSON POST |
-| `SILL_LOG_LEVEL` | `INFO` | `TRACE` for per-poll source detail |
-| `SILL_LOG_JSON` | `false` | structured JSON lines |
+| `CLAUDECLOCK_POLL_INTERVAL` | `60` | seconds between endpoint polls |
+| `CLAUDECLOCK_SOURCES` | `oauth,statusline,local` | priority order; first usable answer wins |
+| `CLAUDECLOCK_AUTO_TRIGGER` | `true` | send the re-arm prompt when the window lapses |
+| `CLAUDECLOCK_TRIGGER_PROMPT` | `Hi` | what gets sent |
+| `CLAUDECLOCK_TRIGGER_MODEL` | `claude-haiku-4-5-20251001` | cheapest available |
+| `CLAUDECLOCK_ALERT_THRESHOLDS` | `30,10,5` | minutes remaining, comma-separated |
+| `CLAUDECLOCK_DISCORD_WEBHOOK_URL` | — | optional |
+| `CLAUDECLOCK_SLACK_WEBHOOK_URL` | — | optional |
+| `CLAUDECLOCK_WEBHOOK_URL` | — | optional, generic JSON POST |
+| `CLAUDECLOCK_LOG_LEVEL` | `INFO` | `TRACE` for per-poll source detail |
+| `CLAUDECLOCK_LOG_JSON` | `false` | structured JSON lines |
 
-State lives in `~/.windowsill/` by default:
+State lives in `~/.claudeclock/` by default:
 
 ```
 monitor.log      rotating diagnostic log (5 MB × 5)
@@ -254,7 +254,7 @@ state.json       cross-restart state, so a restart mid-window is seamless
 The ledger is the durable record, and it is `jq`-friendly:
 
 ```bash
-jq -r 'select(.event=="window_reset") | .ts' ~/.windowsill/events.jsonl
+jq -r 'select(.event=="window_reset") | .ts' ~/.claudeclock/events.jsonl
 ```
 
 ---
@@ -281,7 +281,7 @@ minutes, you get the 5-minute alert only — not a burst of three.
 The failure modes here are mostly boring, which is the goal.
 
 **Network loss.** Exponential backoff with jitter, capped at
-`SILL_BACKOFF_MAX`. The last known-good reset instant keeps driving the
+`CLAUDECLOCK_BACKOFF_MAX`. The last known-good reset instant keeps driving the
 countdown, and the UI marks itself `[stale]`. Nothing blanks out.
 
 **The usage endpoint rate-limiting you.** It will 429 if polled aggressively
@@ -314,7 +314,7 @@ On macOS a refreshed token is held in memory only; the Keychain entry Claude
 Code owns is never written.
 
 **Sleep / resume.** Wall-clock and monotonic time are compared every poll. A
-drift past `SILL_CLOCK_JUMP_THRESHOLD` means the machine was suspended (or
+drift past `CLAUDECLOCK_CLOCK_JUMP_THRESHOLD` means the machine was suspended (or
 someone moved the clock), so the local anchor is dropped, a `system_resume`
 event is logged, and the next poll re-syncs from a real source rather than
 trusting elapsed time. APScheduler jobs use `coalesce=True`, so a 6-hour sleep
@@ -338,8 +338,8 @@ re-evaluate.
 ## Building the apps yourself
 
 ```bash
-./packaging/make_dmg.sh          # macOS  -> dist/Windowsill-x.y.z.dmg
-pyinstaller packaging/windowsill.spec   # Windows -> dist/Windowsill.exe
+./packaging/make_dmg.sh          # macOS  -> dist/ClaudeClock-x.y.z.dmg
+pyinstaller packaging/claudeclock.spec   # Windows -> dist/ClaudeClock.exe
 ```
 
 PyInstaller does not cross-compile, so the `.exe` has to be built on Windows.
@@ -353,7 +353,7 @@ died with a bare `FileNotFoundError` until the entry point overrode it. If you
 ever need to debug a packaged build:
 
 ```bash
-/Applications/Windowsill.app/Contents/MacOS/Windowsill --diagnose
+/Applications/ClaudeClock.app/Contents/MacOS/ClaudeClock --diagnose
 ```
 
 ---
@@ -419,7 +419,7 @@ launchctl load ~/Library/LaunchAgents/com.user.cwm.plist
 ```
 
 **Windows** — Task Scheduler, "At log on", running
-`.venv\Scripts\pythonw.exe -m sill run --no-ui` (note `pythonw`, so no console
+`.venv\Scripts\pythonw.exe -m cclock run --no-ui` (note `pythonw`, so no console
 window appears).
 
 Idle cost is one HTTPS GET per minute and a one-second UI repaint; the poll

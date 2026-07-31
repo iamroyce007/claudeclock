@@ -14,7 +14,7 @@ Both hold the same JSON shape::
 
 Credentials are re-read on every use rather than cached, because Claude Code
 rotates the access token underneath us and we want to pick that up for free.
-Token *refresh* is opt-in (`SILL_ALLOW_TOKEN_REFRESH`) and off by default: two
+Token *refresh* is opt-in (`CLAUDECLOCK_ALLOW_TOKEN_REFRESH`) and off by default: two
 processes writing the same credential store is a race worth avoiding, and the
 auto-reset shell-out runs `claude` every ~5h, which refreshes them anyway.
 """
@@ -31,7 +31,7 @@ from pathlib import Path
 
 import httpx
 
-log = logging.getLogger("sill.auth")
+log = logging.getLogger("cclock.auth")
 
 KEYCHAIN_SERVICE = "Claude Code-credentials"
 CREDENTIALS_FILE = Path.home() / ".claude" / ".credentials.json"
@@ -183,14 +183,14 @@ def load_credentials(explicit_token: str | None = None) -> Credentials:
 
     raise AuthError(
         "No Claude Code OAuth credentials found. Run `claude` once and sign in, "
-        "or set SILL_OAUTH_TOKEN in your .env."
+        "or set CLAUDECLOCK_OAUTH_TOKEN in your .env."
     )
 
 
 def refresh_credentials(creds: Credentials, *, timeout: float = 20.0) -> Credentials:
     """Exchange the refresh token for a new access token.
 
-    Only called when `SILL_ALLOW_TOKEN_REFRESH=true`. On macOS the result is held
+    Only called when `CLAUDECLOCK_ALLOW_TOKEN_REFRESH=true`. On macOS the result is held
     in memory only: we deliberately do not write to the Keychain entry that
     Claude Code owns.
     """

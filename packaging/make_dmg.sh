@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Build Windowsill.app and wrap it in a distributable .dmg.
+# Build ClaudeClock.app and wrap it in a distributable .dmg.
 #
 #   ./packaging/make_dmg.sh
 #
-# Produces dist/Windowsill-<version>.dmg containing the app and a shortcut to
+# Produces dist/ClaudeClock-<version>.dmg containing the app and a shortcut to
 # /Applications, so installing is the usual drag-across gesture.
 set -euo pipefail
 
@@ -13,17 +13,17 @@ cd "$ROOT"
 PYTHON="${PYTHON:-$ROOT/.venv/bin/python}"
 [ -x "$PYTHON" ] || PYTHON="$(command -v python3)"
 
-VERSION="$("$PYTHON" -c 'import sys; sys.path.insert(0, "src"); import windowsill; print(windowsill.__version__)')"
-APP="dist/Windowsill.app"
-DMG="dist/Windowsill-${VERSION}.dmg"
+VERSION="$("$PYTHON" -c 'import sys; sys.path.insert(0, "src"); import claudeclock; print(claudeclock.__version__)')"
+APP="dist/ClaudeClock.app"
+DMG="dist/ClaudeClock-${VERSION}.dmg"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
-echo "==> building Windowsill.app (${VERSION})"
+echo "==> building ClaudeClock.app (${VERSION})"
 rm -rf build dist
-"$PYTHON" packaging/setup_mac.py py2app >/tmp/windowsill-py2app.log 2>&1 || {
-    echo "build failed; see /tmp/windowsill-py2app.log" >&2
-    tail -20 /tmp/windowsill-py2app.log >&2
+"$PYTHON" packaging/setup_mac.py py2app >/tmp/claudeclock-py2app.log 2>&1 || {
+    echo "build failed; see /tmp/claudeclock-py2app.log" >&2
+    tail -20 /tmp/claudeclock-py2app.log >&2
     exit 1
 }
 [ -d "$APP" ] || { echo "no app bundle produced" >&2; exit 1; }
@@ -33,13 +33,13 @@ echo "==> smoke-testing the bundle"
 # before we ship, rather than after someone downloads it.
 # Written to a file first, then grepped: `grep -q` exits on the first match and
 # closes the pipe, which SIGPIPEs `tee` and trips `pipefail` even on success.
-"$APP/Contents/MacOS/Windowsill" --diagnose > /tmp/windowsill-diagnose.log 2>&1 || true
-if ! grep -q "httpx.Client  : OK" /tmp/windowsill-diagnose.log; then
+"$APP/Contents/MacOS/ClaudeClock" --diagnose > /tmp/claudeclock-diagnose.log 2>&1 || true
+if ! grep -q "httpx.Client  : OK" /tmp/claudeclock-diagnose.log; then
     echo "bundle smoke test failed:" >&2
-    cat /tmp/windowsill-diagnose.log >&2
+    cat /tmp/claudeclock-diagnose.log >&2
     exit 1
 fi
-cat /tmp/windowsill-diagnose.log
+cat /tmp/claudeclock-diagnose.log
 
 echo "==> ad-hoc signing"
 # Unsigned bundles are killed outright on Apple Silicon. This is not a
@@ -52,10 +52,10 @@ echo "==> staging"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 cat > "$STAGE/README.txt" <<'TXT'
-Windowsill
+ClaudeClock
 ==========
 
-Drag Windowsill.app to Applications, then launch it.
+Drag ClaudeClock.app to Applications, then launch it.
 
 It appears in the menu bar as a live countdown of your Claude 5-hour usage
 window. It has no Dock icon by design.
@@ -70,7 +70,7 @@ TXT
 echo "==> creating ${DMG}"
 rm -f "$DMG"
 hdiutil create \
-    -volname "Windowsill" \
+    -volname "ClaudeClock" \
     -srcfolder "$STAGE" \
     -ov -format UDZO \
     "$DMG" >/dev/null

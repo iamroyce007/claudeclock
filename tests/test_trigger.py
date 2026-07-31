@@ -7,8 +7,8 @@ import textwrap
 
 import pytest
 
-from windowsill.config import Config
-from windowsill.trigger import TriggerError, _extract_session_id, _is_usage_limited, send_trigger
+from claudeclock.config import Config
+from claudeclock.trigger import TriggerError, _extract_session_id, _is_usage_limited, send_trigger
 
 
 def make_fake_claude(tmp_path, body: str, name: str = "fake_claude.py") -> str:
