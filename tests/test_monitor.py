@@ -219,3 +219,68 @@ def test_threshold_notification_reaches_the_notifier(tmp_path, fake_claude):
     assert len(sent) == 1
     assert "5 minutes remaining" in sent[0].title
     assert sent[0].level == "warning"
+
+
+# --------------------------------------------------------------------------
+# adaptive polling
+# --------------------------------------------------------------------------
+
+
+def test_poll_backs_off_when_the_window_has_hours_left(tmp_path, fake_claude):
+    """resets_at is fixed within a window, so there is nothing to re-fetch.
+
+    Regression: a fixed 60s cadence trips the endpoint's rate limit, and every
+    retry re-trips it, so the app gets stuck on inferred data and stops
+    matching the real Claude limit.
+    """
+    command, _ = fake_claude
+    config = make_config(tmp_path, command, poll_interval=600.0)
+
+    active = make_snapshot(datetime.now(timezone.utc) + timedelta(hours=4))
+    monitor = Monitor(config, headless=True, sources=[FakeSource([active])])
+    try:
+        monitor.tracker.poll()
+        assert monitor._next_poll_delay() >= 600.0
+    finally:
+        monitor.notifier.stop()
+
+
+def test_poll_tightens_near_the_boundary(tmp_path, fake_claude):
+    command, _ = fake_claude
+    config = make_config(tmp_path, command, poll_interval=600.0)
+
+    nearly = make_snapshot(datetime.now(timezone.utc) + timedelta(minutes=8))
+    monitor = Monitor(config, headless=True, sources=[FakeSource([nearly])])
+    try:
+        monitor.tracker.poll()
+        assert monitor._next_poll_delay() <= 60.0
+    finally:
+        monitor.notifier.stop()
+
+
+def test_poll_is_brisk_while_waiting_for_a_new_window(tmp_path, fake_claude):
+    command, _ = fake_claude
+    config = make_config(tmp_path, command, poll_interval=600.0)
+
+    expired = make_snapshot(datetime.now(timezone.utc) - timedelta(seconds=1))
+    monitor = Monitor(config, headless=True, sources=[FakeSource([expired])])
+    try:
+        monitor.tracker.poll()
+        assert monitor._next_poll_delay() <= 30.0
+    finally:
+        monitor.notifier.stop()
+
+
+def test_poll_never_sails_past_the_reset(tmp_path, fake_claude):
+    """The idle delay must always leave room to observe the boundary."""
+    command, _ = fake_claude
+    config = make_config(tmp_path, command, poll_interval=3600.0)
+
+    snapshot = make_snapshot(datetime.now(timezone.utc) + timedelta(minutes=20))
+    monitor = Monitor(config, headless=True, sources=[FakeSource([snapshot])])
+    try:
+        monitor.tracker.poll()
+        delay = monitor._next_poll_delay()
+        assert delay < 20 * 60, "would wake after the window already reset"
+    finally:
+        monitor.notifier.stop()

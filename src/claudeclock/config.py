@@ -72,7 +72,7 @@ def _get_int(key: str, default: int, *, minimum: int | None = None) -> int:
 class Config:
     # Window model
     window_hours: float = 5.0
-    poll_interval: float = 60.0
+    poll_interval: float = 600.0
     ui_refresh: float = 1.0
 
     # Sources
@@ -230,7 +230,7 @@ class Config:
 
         return cls(
             window_hours=_get_float("CLAUDECLOCK_WINDOW_HOURS", 5.0, minimum=0.1),
-            poll_interval=_get_float("CLAUDECLOCK_POLL_INTERVAL", 60.0, minimum=5.0),
+            poll_interval=_get_float("CLAUDECLOCK_POLL_INTERVAL", 600.0, minimum=30.0),
             ui_refresh=_get_float("CLAUDECLOCK_UI_REFRESH", 1.0, minimum=0.1),
             sources=sources,
             statusline_file=statusline_file,

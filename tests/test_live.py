@@ -247,3 +247,15 @@ def test_pid_alive_reports_a_dead_process():
 def test_pid_alive_rejects_nonsense_pids():
     for pid in (0, -1, -999):
         assert live._pid_alive(pid) is False
+
+
+def test_menubar_marks_an_estimate_as_unconfirmed(tmp_path):
+    """An inferred countdown must not look like the server's own figure."""
+    path = tmp_path / "live.json"
+    live.publish(path, make_view(confidence="inferred", source="local"),
+                 window_hours=5.0)
+    assert live.menubar_title(live.read(path)).startswith("○")
+
+    live.publish(path, make_view(confidence="authoritative", source="oauth"),
+                 window_hours=5.0)
+    assert live.menubar_title(live.read(path)).startswith("●")

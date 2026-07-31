@@ -107,15 +107,8 @@ class Monitor:
         except Exception:
             log.exception("initial poll failed")
 
-        self.scheduler.add_job(
-            self._poll_job,
-            "interval",
-            seconds=self.config.poll_interval,
-            id="poll",
-            next_run_time=datetime.now(timezone.utc)
-            + timedelta(seconds=self.config.poll_interval),
-        )
         self.scheduler.start()
+        self._schedule_next_poll()
         self.publish(self.tracker.tick())
 
     def start_background(self, on_tick=None) -> None:
@@ -241,12 +234,60 @@ class Monitor:
 
     # -- jobs ---------------------------------------------------------------
 
+    def _next_poll_delay(self) -> float:
+        """How long to wait before asking the server again.
+
+        `resets_at` does not change within a window, so once an authoritative
+        source has told us when the window ends there is nothing to re-fetch
+        until we approach that boundary - the countdown is computed locally.
+        Polling on a fixed short interval is therefore pure waste, and enough
+        of it trips the endpoint's rate limit, which then keeps the app stuck
+        on inferred data because every retry re-trips it.
+
+        So: watch closely near the boundary, idle the rest of the time.
+        """
+        view = self.tracker.view
+        base = self.config.poll_interval
+
+        if view.state == State.RESET_PENDING:
+            return min(base, 30.0)          # catch the new window promptly
+
+        if view.remaining is None:
+            return base
+
+        remaining = view.remaining.total_seconds()
+        if remaining <= 15 * 60:
+            return min(base, 60.0)          # near the boundary, watch closely
+
+        # Plenty of time left. Check in occasionally to refresh the utilization
+        # figure and to notice a window re-armed from elsewhere, but never so
+        # late that we would sail past the reset.
+        idle = max(base, 600.0)
+        return max(60.0, min(idle, remaining - 10 * 60))
+
+    def _schedule_next_poll(self) -> None:
+        delay = self._next_poll_delay()
+        log.debug("next poll scheduled", extra={"in_seconds": round(delay)})
+        try:
+            self.scheduler.add_job(
+                self._poll_job,
+                "date",
+                run_date=datetime.now(timezone.utc) + timedelta(seconds=delay),
+                id="poll",
+                replace_existing=True,
+            )
+        except Exception:
+            log.exception("could not schedule the next poll")
+
     def _poll_job(self) -> None:
         try:
             view = self.tracker.poll()
             log.debug("polled", extra={"status": plain_status_line(view)})
         except Exception:
             log.exception("poll job failed")
+        finally:
+            if not self._stop.is_set():
+                self._schedule_next_poll()
 
     def _maybe_rearm(self, view: WindowView) -> None:
         """Schedule the re-arm prompt once the window has lapsed."""

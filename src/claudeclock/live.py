@@ -276,6 +276,12 @@ def menubar_title(state: LiveState, *, show_seconds: bool = True) -> str:
     seconds = state.remaining_seconds
     level = urgency(seconds)
     glyph = GLYPH_FOR_LEVEL.get(level, "○")
+    # A hollow glyph means "this is an estimate, not the server's figure".
+    # Without it an inferred countdown is indistinguishable from a confirmed
+    # one, which is worse than showing nothing.
+    if state.get("confidence") != "authoritative":
+        glyph = "○"
+
     if level == "expired":
         return f"{glyph} reset"
     return f"{glyph} {format_clock(seconds, compact=not show_seconds)}"

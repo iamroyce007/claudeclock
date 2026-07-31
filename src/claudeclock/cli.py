@@ -6,6 +6,7 @@ import argparse
 import json
 import logging
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -365,7 +366,17 @@ def cmd_install_statusline(config: Config, args: argparse.Namespace) -> int:
     shim_path = config.state_dir / "statusline_shim.py"
     script = render_shim(config.statusline_file)
 
-    command = f'"{sys.executable}" "{shim_path}"'
+    # Prefer a stable system interpreter over sys.executable: the latter may
+    # be a virtualenv inside a checkout the user later moves or deletes, which
+    # would silently break their Claude Code statusline. The shim is pure
+    # stdlib, so any Python 3 will do.
+    interpreter = sys.executable
+    for candidate in ("/usr/bin/python3", shutil.which("python3")):
+        if candidate and Path(candidate).exists():
+            interpreter = candidate
+            break
+
+    command = f'"{interpreter}" "{shim_path}"'
 
     if args.print_only:
         console.print(f"[bold]would write shim to[/bold] {shim_path}")

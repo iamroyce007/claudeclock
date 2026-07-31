@@ -64,7 +64,8 @@ def test_non_numeric_interval_is_rejected(monkeypatch, tmp_path):
 
 
 def test_absurd_poll_interval_is_rejected(monkeypatch, tmp_path):
-    with pytest.raises(ConfigError, match=">= 5"):
+    """The usage endpoint rate-limits aggressive polling, so there is a floor."""
+    with pytest.raises(ConfigError, match=">= 30"):
         load(monkeypatch, tmp_path, CLAUDECLOCK_POLL_INTERVAL="0.1")
 
 
@@ -111,7 +112,7 @@ def test_thresholds_are_deduped_and_ordered(monkeypatch, tmp_path):
 def test_blank_values_fall_back_to_defaults(monkeypatch, tmp_path):
     config = load(monkeypatch, tmp_path, CLAUDECLOCK_TRIGGER_PROMPT="", CLAUDECLOCK_POLL_INTERVAL="  ")
     assert config.trigger_prompt == "Hi"
-    assert config.poll_interval == 60.0
+    assert config.poll_interval == 600.0
 
 
 def test_verbose_forces_debug_level(monkeypatch, tmp_path):

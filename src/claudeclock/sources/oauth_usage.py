@@ -40,6 +40,10 @@ USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
 OAUTH_BETA = "oauth-2025-04-20"
 USER_AGENT = "claudeclock/1.0"
 
+# A 429 here is a minutes-scale limit, not a transient blip.
+RATE_LIMIT_BACKOFF_MIN = 300.0    # 5 minutes
+RATE_LIMIT_BACKOFF_MAX = 1800.0   # 30 minutes
+
 
 class UsageEndpointError(RuntimeError):
     """The endpoint was reachable but did not give us a usable answer."""
@@ -98,10 +102,21 @@ class OAuthUsageSource:
     def _note_failure(self, reason: str) -> None:
         self._consecutive_failures += 1
         self.last_error = reason
-        delay = min(
-            self._backoff_max,
-            self._backoff_min * (2 ** (self._consecutive_failures - 1)),
-        )
+
+        if "429" in reason or "rate limited" in reason.lower():
+            # This endpoint is meant for occasional interactive use, so its
+            # limit is measured in minutes, not seconds. Retrying on the
+            # ordinary network backoff just re-trips it and keeps us pinned to
+            # inferred data, so wait properly.
+            delay = min(
+                RATE_LIMIT_BACKOFF_MAX,
+                RATE_LIMIT_BACKOFF_MIN * (2 ** (self._consecutive_failures - 1)),
+            )
+        else:
+            delay = min(
+                self._backoff_max,
+                self._backoff_min * (2 ** (self._consecutive_failures - 1)),
+            )
         delay *= 0.75 + random.random() * 0.5  # jitter, avoid lockstep retries
         self._blocked_until = time.monotonic() + delay
         log.warning(
