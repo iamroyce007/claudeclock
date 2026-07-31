@@ -14,6 +14,39 @@ import traceback
 from pathlib import Path
 
 
+def _ensure_std_streams() -> None:
+    """Guarantee sys.stdout / sys.stderr are writable.
+
+    A PyInstaller `console=False` build is a GUI-subsystem binary. Launched
+    from cmd.exe it inherits that console's handles and everything works;
+    double-clicked from Explorer it gets none, and Python sets sys.stdout and
+    sys.stderr to None. Any write - ours, or a library's - then raises
+    AttributeError and the process dies silently, which on Windows means the
+    tray icon simply never appears.
+
+    That is precisely why running it from a .bat worked and double-clicking did
+    not. Bind both streams to the log file so no write can ever fault.
+    """
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+
+    target = None
+    try:
+        state = Path(os.environ.get("CLAUDECLOCK_STATE_DIR") or (Path.home() / ".claudeclock"))
+        state.mkdir(parents=True, exist_ok=True)
+        target = open(state / "startup.log", "a", encoding="utf-8", buffering=1)
+    except Exception:
+        try:
+            target = open(os.devnull, "w", encoding="utf-8")
+        except Exception:
+            return
+
+    if sys.stdout is None:
+        sys.stdout = target
+    if sys.stderr is None:
+        sys.stderr = target
+
+
 def _ensure_path() -> None:
     """Make the package importable when run from a source checkout."""
     here = Path(__file__).resolve().parent
@@ -106,7 +139,24 @@ def _fix_ssl_certificates() -> None:
 
 def _report(message: str, detail: str = "") -> None:
     """Surface a fatal error where a windowless app can actually show it."""
-    sys.stderr.write(f"{message}\n{detail}\n")
+    try:
+        sys.stderr.write(f"{message}\n{detail}\n")
+    except Exception:
+        pass
+
+    if sys.platform.startswith("win"):
+        # Without this a windowed build fails invisibly: no console, no dialog,
+        # no tray icon, nothing for the user to report.
+        try:
+            import ctypes
+
+            body = (message + ("\n\n" + detail if detail else ""))[:1500]
+            MB_ICONERROR = 0x10
+            ctypes.windll.user32.MessageBoxW(None, body, "ClaudeClock", MB_ICONERROR)
+        except Exception:
+            pass
+        return
+
     if sys.platform == "darwin":
         try:
             import subprocess
@@ -162,6 +212,7 @@ def _diagnose() -> int:
 
 
 def main() -> int:
+    _ensure_std_streams()
     _ensure_path()
     _fix_path_for_bundle()
     _fix_ssl_certificates()

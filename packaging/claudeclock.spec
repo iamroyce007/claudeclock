@@ -76,7 +76,11 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    # UPX compression is one of the strongest heuristic antivirus triggers -
+    # packers are far more common in malware than in legitimate software, and
+    # an unsigned packed binary is close to a guaranteed false positive. The
+    # few MB it saves are not worth shipping something Defender quarantines.
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,          # no terminal window behind the tray icon

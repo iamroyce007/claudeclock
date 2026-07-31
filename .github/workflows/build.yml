@@ -89,8 +89,7 @@ jobs:
       - name: Build .exe
         run: pyinstaller --noconfirm packaging/claudeclock.spec
 
-      # Catches missing hidden imports and the certifi bundling problem before
-      # the binary reaches anyone.
+      # Catches missing hidden imports and the certifi bundling problem.
       - name: Smoke-test the executable
         shell: pwsh
         run: |
@@ -100,6 +99,39 @@ jobs:
             Write-Error "bundled executable failed its smoke test"
             exit 1
           }
+
+      # The check above runs the exe FROM a console, so it inherits usable
+      # stdout/stderr handles. A double-click from Explorer does not, and the
+      # streams are None - which used to kill the app before the tray icon
+      # appeared. Start-Process detaches, reproducing the double-click case.
+      - name: Start it with no console, as Explorer would
+        shell: pwsh
+        run: |
+          $state = Join-Path $PWD "ci-state"
+          $env:CLAUDECLOCK_STATE_DIR = $state
+          $env:CLAUDECLOCK_DESKTOP_NOTIFICATIONS = "false"
+          $proc = Start-Process -FilePath ".\dist\ClaudeClock.exe" -PassThru
+          Start-Sleep -Seconds 30
+
+          if ($proc.HasExited) {
+            Write-Host "--- startup.log ---"
+            Get-Content (Join-Path $state "startup.log") -ErrorAction SilentlyContinue
+            Get-Content (Join-Path $state "monitor.log") -ErrorAction SilentlyContinue
+            Write-Error "exe died with no console attached (exit $($proc.ExitCode))"
+            exit 1
+          }
+
+          $live = Join-Path $state "live.json"
+          if (-not (Test-Path $live)) {
+            Get-Content (Join-Path $state "monitor.log") -ErrorAction SilentlyContinue
+            Stop-Process -Id $proc.Id -Force
+            Write-Error "exe started but never published live.json"
+            exit 1
+          }
+
+          Write-Host "OK - running with no console, published:"
+          Get-Content $live
+          Stop-Process -Id $proc.Id -Force
 
       - uses: actions/upload-artifact@v4
         with:
