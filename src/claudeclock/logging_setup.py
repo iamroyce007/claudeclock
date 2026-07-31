@@ -20,8 +20,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
 
-from rich.logging import RichHandler
-
 TRACE = 5
 logging.addLevelName(TRACE, "TRACE")
 
@@ -118,6 +116,10 @@ def setup_logging(
     root.addHandler(file_handler)
 
     if console:
+        # Imported lazily: only the terminal front-ends ever ask for console
+        # output, and this keeps Rich out of the packaged GUI app.
+        from rich.logging import RichHandler
+
         stream = RichHandler(
             rich_tracebacks=True, show_path=False, omit_repeated_times=False
         )

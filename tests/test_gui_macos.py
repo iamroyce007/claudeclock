@@ -8,6 +8,7 @@ entered programmatically, so the fix is directly testable.
 
 from __future__ import annotations
 
+import re
 import sys
 
 import pytest
@@ -123,3 +124,72 @@ def test_a_raising_callback_does_not_kill_the_tick():
         timer.stop()
 
     assert len(calls) >= 3, "timer stopped after the first exception"
+
+
+# --------------------------------------------------------------------------
+# menu structure
+# --------------------------------------------------------------------------
+
+
+def test_every_menu_row_survives_registration():
+    """Regression: rumps keys its menu by title, so duplicate titles collapse.
+
+    Five detail rows were created with the same "" placeholder and silently
+    became one entry, so the dropdown was missing Remaining, Session start,
+    Resets at, Limit used and Source.
+    """
+    from claudeclock.config import Config
+    from claudeclock.gui.macos import MenuBarApp
+
+    app = MenuBarApp(Config.load())
+    app.timer.stop()
+    keys = list(app.menu.keys())
+
+    for expected in ("Remaining", "Session start", "Resets at",
+                     "Limit used", "Source"):
+        assert expected in keys, f"{expected!r} row was dropped from the menu"
+
+    for action in ("Open Detail Window", "Send Re-arm Prompt Now",
+                   "Open Log Folder", "Quit"):
+        assert action in keys, f"{action!r} action missing"
+
+    assert len(keys) == len(set(keys)), "duplicate menu keys will collide"
+
+
+def test_menu_rows_are_populated_on_tick(tmp_path):
+    """The rows must show real values, not their placeholder labels."""
+    from datetime import datetime, timedelta, timezone
+
+    from claudeclock import live
+    from claudeclock.config import Config
+    from claudeclock.gui.macos import MenuBarApp
+    from claudeclock.tracker import State, WindowView
+
+    now = datetime.now(timezone.utc)
+    path = tmp_path / "live.json"
+    live.publish(
+        path,
+        WindowView(
+            state=State.ACTIVE,
+            session_start=now - timedelta(hours=1),
+            resets_at=now + timedelta(hours=4),
+            remaining=timedelta(hours=4),
+            elapsed=timedelta(hours=1),
+            utilization=35.0,
+            source="oauth",
+            confidence="authoritative",
+        ),
+        window_hours=5.0,
+    )
+
+    config = Config(state_dir=tmp_path)
+    app = MenuBarApp(config)
+    app.timer.stop()
+    app.on_tick(None)
+
+    # ~4h, but a fraction of a second has elapsed, so match the clock shape
+    # rather than a literal prefix.
+    assert re.search(r"\d+:\d{2}:\d{2}", app.item_remaining.title), app.item_remaining.title
+    assert "35.0%" in app.item_used.title
+    assert "oauth" in app.item_source.title
+    assert app.title.startswith("●")

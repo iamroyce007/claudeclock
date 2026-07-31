@@ -57,7 +57,6 @@ OPTIONS = {
         "httpx",
         "apscheduler",
         "dotenv",
-        "rich",
         "certifi",
     ],
     "includes": [
@@ -73,13 +72,40 @@ OPTIONS = {
         "apscheduler.jobstores.memory",
     ],
     "excludes": [
-        "pystray",       # Windows/Linux front-end; dead weight in a .app
+        # Other platform's front-end, and build-time-only tooling.
+        "pystray",
         "PIL",
         "pytest",
         "setuptools",
         "pip",
+        "wheel",
+        # Terminal rendering. The CLI uses Rich; the app has no terminal, and
+        # monitor.py / logging_setup.py import it lazily so it is genuinely
+        # unreachable here. Worth ~4 MB with its dependencies.
+        "rich",
+        "pygments",
+        "markdown_it",
+        "mdurl",
+        # Stdlib corners nothing here touches. `test` alone is several MB of
+        # fixture data (Unicode tables, tarballs, a bundled setuptools wheel).
+        "test",
+        "unittest",
+        "pydoc_data",
+        "idlelib",
+        "lib2to3",
+        "distutils",
+        "sqlite3",
+        "xmlrpc",
+        "curses",
+        "dbm",
+        "ensurepip",
+        "venv",
+        "turtledemo",
+        "tkinter.test",
     ],
     "strip": True,
+    # Strip docstrings as well as asserts.
+    "optimize": 2,
     "dist_dir": str(ROOT / "dist"),
     "bdist_base": str(ROOT / "build"),
 }

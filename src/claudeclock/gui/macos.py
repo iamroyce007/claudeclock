@@ -102,12 +102,17 @@ class MenuBarApp(rumps.App):
         self.monitor = monitor
         self._panel_process: subprocess.Popen | None = None
 
+        # Each item needs a DISTINCT initial title: rumps keys its menu by
+        # title, so several items created with the same "" placeholder collapse
+        # into a single entry and the dropdown silently loses rows. Changing
+        # `.title` later only updates the display, not the key, so these
+        # placeholders are safe to overwrite on every tick.
         self.item_status = rumps.MenuItem("Starting…")
-        self.item_remaining = rumps.MenuItem("")
-        self.item_start = rumps.MenuItem("")
-        self.item_reset = rumps.MenuItem("")
-        self.item_used = rumps.MenuItem("")
-        self.item_source = rumps.MenuItem("")
+        self.item_remaining = rumps.MenuItem("Remaining")
+        self.item_start = rumps.MenuItem("Session start")
+        self.item_reset = rumps.MenuItem("Resets at")
+        self.item_used = rumps.MenuItem("Limit used")
+        self.item_source = rumps.MenuItem("Source")
 
         self.menu = [
             self.item_status,
@@ -145,11 +150,14 @@ class MenuBarApp(rumps.App):
 
         if not state.connected:
             self.item_status.title = f"⚠ {state.reason or 'not connected'}"
-            for item in (
-                self.item_remaining, self.item_start,
-                self.item_reset, self.item_used, self.item_source,
+            for item, label in (
+                (self.item_remaining, "Remaining"),
+                (self.item_start, "Session start"),
+                (self.item_reset, "Resets at"),
+                (self.item_used, "Limit used"),
+                (self.item_source, "Source"),
             ):
-                item.title = ""
+                item.title = f"{label:<14} —"
             return
 
         seconds = state.remaining_seconds

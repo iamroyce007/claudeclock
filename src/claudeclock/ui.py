@@ -18,6 +18,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .config import Config
+from .live import format_datetime, format_timedelta, status_line
 from .sources import Confidence
 from .tracker import State, WindowView
 
@@ -37,22 +38,11 @@ CONFIDENCE_NOTE = {
 
 
 def format_duration(delta: timedelta | None) -> str:
-    if delta is None:
-        return "--:--:--"
-    total = int(delta.total_seconds())
-    sign = "-" if total < 0 else ""
-    total = abs(total)
-    hours, remainder = divmod(total, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return f"{sign}{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return format_timedelta(delta)
 
 
 def format_local(stamp: datetime | None, *, with_date: bool = False) -> str:
-    if stamp is None:
-        return "—"
-    local = stamp.astimezone()
-    pattern = "%Y-%m-%d %H:%M:%S %Z" if with_date else "%H:%M:%S %Z"
-    return local.strftime(pattern)
+    return format_datetime(stamp, with_date=with_date)
 
 
 def _relative(stamp: datetime | None) -> str:
@@ -225,13 +215,4 @@ def render_once(config: Config, view: WindowView, console: Console | None = None
 
 
 def plain_status_line(view: WindowView) -> str:
-    """One-line summary for headless mode and log output."""
-    parts = [f"state={view.state.value}"]
-    if view.remaining is not None:
-        parts.append(f"remaining={format_duration(view.remaining)}")
-    if view.resets_at is not None:
-        parts.append(f"resets_at={view.resets_at.astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    if view.utilization is not None:
-        parts.append(f"used={view.utilization:.1f}%")
-    parts.append(f"source={view.source}/{view.confidence}")
-    return "  ".join(parts)
+    return status_line(view)

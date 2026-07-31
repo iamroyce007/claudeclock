@@ -305,3 +305,45 @@ def urgency(seconds: float | None) -> str:
     if seconds <= 30 * 60:
         return "warning"
     return "normal"
+
+
+# --------------------------------------------------------------------------
+# formatters shared with the terminal UI
+#
+# These live here rather than in ui.py so that monitor.py - and therefore the
+# packaged menu bar app - never has to import Rich. That keeps ~4 MB of
+# terminal-rendering machinery out of a bundle that has no terminal.
+# --------------------------------------------------------------------------
+
+
+def format_timedelta(delta) -> str:
+    """`HH:MM:SS`, negative-aware."""
+    if delta is None:
+        return "--:--:--"
+    total = int(delta.total_seconds())
+    sign = "-" if total < 0 else ""
+    total = abs(total)
+    hours, remainder = divmod(total, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{sign}{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def format_datetime(stamp, *, with_date: bool = False) -> str:
+    """Render a tz-aware datetime in local time."""
+    if stamp is None:
+        return "\u2014"
+    local = stamp.astimezone()
+    return local.strftime("%Y-%m-%d %H:%M:%S %Z" if with_date else "%H:%M:%S %Z")
+
+
+def status_line(view) -> str:
+    """One-line summary of a WindowView, for logs and headless mode."""
+    parts = [f"state={view.state.value}"]
+    if view.remaining is not None:
+        parts.append(f"remaining={format_timedelta(view.remaining)}")
+    if view.resets_at is not None:
+        parts.append(f"resets_at={format_datetime(view.resets_at, with_date=True)}")
+    if view.utilization is not None:
+        parts.append(f"used={view.utilization:.1f}%")
+    parts.append(f"source={view.source}/{view.confidence}")
+    return "  ".join(parts)

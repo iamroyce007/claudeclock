@@ -28,6 +28,13 @@ rm -rf build dist
 }
 [ -d "$APP" ] || { echo "no app bundle produced" >&2; exit 1; }
 
+echo "==> stripping debug symbols"
+# py2app copies PyObjC's .dSYM debug bundles verbatim - ~7 MB of DWARF that no
+# end user can use. Also drop stray test data and bytecode caches.
+find "$APP" -name "*.dSYM" -type d -prune -exec rm -rf {} + 2>/dev/null || true
+find "$APP" -name "__pycache__" -type d -prune -exec rm -rf {} + 2>/dev/null || true
+find "$APP" -name "*.pyc" -path "*/test/*" -delete 2>/dev/null || true
+
 echo "==> smoke-testing the bundle"
 # Catches the classic packaging failures (missing certs, missing submodules)
 # before we ship, rather than after someone downloads it.

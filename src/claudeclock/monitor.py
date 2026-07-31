@@ -22,8 +22,6 @@ import threading
 from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from rich.console import Console
-from rich.live import Live
 
 from . import live as live_state
 from .config import Config
@@ -31,7 +29,9 @@ from .logging_setup import EventLog
 from .notify import Notification, Notifier
 from .tracker import State, WindowTracker, WindowView, build_sources
 from .trigger import dry_run_description, send_trigger
-from .ui import Dashboard, format_duration, format_local, plain_status_line
+from .live import format_datetime as format_local
+from .live import format_timedelta as format_duration
+from .live import status_line as plain_status_line
 
 log = logging.getLogger("cclock.monitor")
 
@@ -48,10 +48,8 @@ class Monitor:
     ) -> None:
         self.config = config
         self.headless = headless
-        self.console = Console()
         self.events = EventLog(config.event_log_file)
         self.notifier = Notifier(config)
-        self.dashboard = Dashboard(config)
 
         self.tracker = WindowTracker(
             config,
@@ -175,6 +173,15 @@ class Monitor:
                 pass
 
     def _run_live(self) -> None:
+        # Imported here, not at module scope: the packaged menu bar app never
+        # renders a terminal dashboard, and this keeps Rich out of the bundle.
+        from rich.console import Console
+        from rich.live import Live
+
+        from .ui import Dashboard
+
+        self.console = Console()
+        self.dashboard = Dashboard(self.config)
         with Live(
             self.dashboard.render(self.tracker.snapshot_view()),
             console=self.console,
