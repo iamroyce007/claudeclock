@@ -41,7 +41,9 @@ jobs:
           Xvfb :99 -screen 0 1280x1024x24 &
 
       - name: Run tests
-        run: pytest -q
+        # -v names the test in the log if one hangs; the timeout turns a hang
+        # into a normal failure with a traceback instead of a killed job.
+        run: pytest -v --timeout=90 --timeout-method=thread
 
   macos:
     name: macOS .dmg
