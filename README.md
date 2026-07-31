@@ -97,7 +97,12 @@ That's it. Look at the **top-right of your screen** (macOS menu bar) or the
 claude --version
 ```
 
-If you also want the command line tools, install from source:
+<a name="from-source"></a>
+
+### Run from source
+
+This path involves no signed binary at all, so it sidesteps SmartScreen,
+antivirus heuristics and Gatekeeper entirely:
 
 ```bash
 git clone https://github.com/iamroyce007/claudeclock.git
@@ -116,6 +121,107 @@ Usage endpoint    OK  window resets 2026-07-31 22:10:00, 40.0% used
 Re-arm command    OK  /Users/you/.local/bin/claude -p Hi --output-format json
 Notifications     OK  desktop
 ```
+
+---
+
+## "Windows blocked this" / "Trojan detected" / firewall prompt
+
+If Windows SmartScreen blocks the `.exe`, your antivirus flags it as a trojan,
+or a firewall prompt appears on first run — that is expected, and it is a
+**false positive**. Here is exactly why, and what to do.
+
+### Why it happens
+
+Nothing about the app is malicious, but four of its properties are also true of
+real malware, and heuristic scanners cannot tell the difference:
+
+| Property | Why it looks suspicious |
+|---|---|
+| **Unsigned** | No Authenticode signature, so SmartScreen has zero reputation for it and warns by default |
+| **PyInstaller one-file** | It unpacks a Python runtime into `%TEMP%` at launch. Self-extracting-and-executing is textbook dropper behaviour |
+| **Reads credentials** | It reads the OAuth token Claude Code already stored, to ask Anthropic about your usage |
+| **Network + subprocess** | It calls `api.anthropic.com` and launches `claude` to send the re-arm prompt |
+
+Brand-new files with few downloads also have no reputation history, which alone
+is enough for SmartScreen to interrupt.
+
+### What has already been done to reduce it
+
+- **UPX compression removed.** Executable packers are far more common in
+  malware than in legitimate software; a packed *and* unsigned binary is close
+  to a guaranteed detection. Dropping it costs a few MB and removes one of the
+  strongest heuristic triggers.
+- **Built in public.** Every release is compiled by
+  [GitHub Actions](.github/workflows/build.yml) from the tagged source in this
+  repository — not on anyone's laptop. You can read the workflow, read the
+  source, and rebuild it yourself.
+
+### What to do
+
+**1. SmartScreen — "Windows protected your PC"**
+
+Click **More info**, then **Run anyway**. Once per version.
+
+**2. Antivirus quarantined it**
+
+Windows Security → **Virus & threat protection** → **Protection history** →
+find ClaudeClock → **Actions** → **Allow on device**.
+
+To pre-empt it, add an exclusion for the file you downloaded:
+
+```powershell
+Add-MpPreference -ExclusionPath "$env:USERPROFILE\Downloads\ClaudeClock.exe"
+```
+
+Only exclude the specific file, never the whole Downloads folder.
+
+**3. Firewall prompt on first run**
+
+Allow it on **private networks**. It needs outbound HTTPS to
+`api.anthropic.com` to read your usage window; it opens no inbound ports and
+listens on nothing.
+
+### Verify before you trust it
+
+Do not take the above on faith. Check the SHA-256 of your download against the
+`SHA256SUMS.txt` published with each release:
+
+```powershell
+Get-FileHash .\ClaudeClock.exe -Algorithm SHA256
+```
+
+```bash
+shasum -a 256 ClaudeClock-*.dmg
+```
+
+If they match, the binary is bit-for-bit what CI built from the tagged source.
+You can also skip the binaries entirely and [run from source](#from-source) —
+no signing, no SmartScreen, no antivirus heuristics involved.
+
+### The actual fix
+
+These warnings only disappear with **code signing**, which is a paid identity
+check, not a code change:
+
+- **Windows** — an OV (~$200/yr) or EV (~$400/yr) code-signing certificate. EV
+  grants immediate SmartScreen reputation; OV builds it up over time.
+- **macOS** — an Apple Developer ID ($99/yr) plus notarisation, which is what
+  removes *"Apple could not verify this app is free of malware"*.
+
+Until those exist, every fresh download will warn. That is a distribution
+problem, and no amount of work on the app changes it.
+
+### macOS equivalent
+
+If macOS says **"ClaudeClock Not Opened — Apple could not verify..."** with only
+a *Move to Trash* button, the app is quarantined because the browser flagged
+the download. Clear that flag on this one app:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/ClaudeClock.app
+```
+
+This affects only that app; it does not weaken Gatekeeper system-wide.
 
 ---
 

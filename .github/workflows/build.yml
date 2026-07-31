@@ -151,9 +151,23 @@ jobs:
         with:
           path: artifacts
 
+      # Both binaries are unsigned, so antivirus and SmartScreen will warn.
+      # Publishing checksums at least lets people confirm the file they
+      # downloaded is bit-for-bit what CI built from the tagged source.
+      - name: Generate SHA256SUMS.txt
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name '*.dmg' -o -name '*.exe' \) \
+            -exec cp {} release/ \;
+          cd release
+          sha256sum * > SHA256SUMS.txt
+          echo "--- SHA256SUMS.txt ---"
+          cat SHA256SUMS.txt
+
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/ClaudeClock-macos-dmg/*.dmg
-            artifacts/ClaudeClock-windows-exe/ClaudeClock.exe
+            release/*.dmg
+            release/ClaudeClock.exe
+            release/SHA256SUMS.txt
           generate_release_notes: true
