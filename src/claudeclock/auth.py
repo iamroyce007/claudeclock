@@ -213,6 +213,15 @@ def refresh_credentials(creds: Credentials, *, timeout: float = 20.0) -> Credent
         payload = response.json()
     except httpx.HTTPError as exc:
         raise AuthError(f"token refresh failed: {exc}") from exc
+    except ValueError as exc:
+        # response.json() raises on a non-JSON body (an HTML error page from a
+        # captive portal or proxy, say). That is not an httpx.HTTPError, so it
+        # escaped this handler and propagated out of the poll thread instead of
+        # being reported as the auth failure it is.
+        raise AuthError(f"token refresh returned a non-JSON body: {exc}") from exc
+
+    if not isinstance(payload, dict):
+        raise AuthError("token refresh response was not a JSON object")
 
     token = payload.get("access_token")
     if not token:
