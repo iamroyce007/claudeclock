@@ -173,6 +173,11 @@ class EventLog:
     def tail(self, count: int = 20) -> list[dict[str, Any]]:
         if not self.path.exists():
             return []
+        if count <= 0:
+            # lines[-0:] is lines[0:] - the whole ledger. `--tail 0` therefore
+            # printed every event ever recorded, which is the opposite of what
+            # it asks for, and the ledger is never rotated.
+            return []
         try:
             with self.path.open("r", encoding="utf-8") as handle:
                 lines = handle.readlines()[-count:]
