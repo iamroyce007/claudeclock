@@ -242,7 +242,11 @@ class OAuthUsageSource:
                 weekly_util = float(raw_weekly)
 
         # A window that has already elapsed is a stale reading, not an open
-        # window; treat it as closed so the state machine re-arms.
+        # one. We deliberately pass it through rather than nulling it here:
+        # the tracker's _check_expiry compares resets_at to now, announces the
+        # reset exactly once and moves to RESET_PENDING, which is what drives
+        # the re-arm. Nulling it at this layer would lose the boundary the
+        # local source anchors on and look like "no window ever existed".
         if resets_at is not None and resets_at <= datetime.now(timezone.utc):
             log.debug(
                 "endpoint reported an already-elapsed window",
