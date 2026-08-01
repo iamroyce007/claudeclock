@@ -18,7 +18,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .config import Config
-from .live import format_datetime, format_timedelta, status_line
+from .live import format_datetime, format_timedelta, status_line, urgency
 from .sources import Confidence
 from .tracker import State, WindowView
 
@@ -28,6 +28,17 @@ STATE_STYLES: dict[State, tuple[str, str]] = {
     State.EXPIRING: ("bold yellow", "◐"),
     State.RESET_PENDING: ("bold magenta", "◌"),
     State.RESET_COMPLETE: ("bold cyan", "✓"),
+}
+
+#: Countdown colour per urgency level, the same levels the tray icon and menu
+#: bar use. Keeping the mapping here - rather than a second set of hardcoded
+#: minute cutoffs - is what makes the terminal agree with them.
+COLOUR_FOR_LEVEL = {
+    "normal": "green",
+    "warning": "yellow",
+    "critical": "red",
+    "expired": "magenta",
+    "unknown": "grey62",
 }
 
 CONFIDENCE_NOTE = {
@@ -101,14 +112,14 @@ class Dashboard:
 
         remaining = view.remaining
         seconds_left = remaining.total_seconds()
-        if seconds_left <= 0:
-            colour = "magenta"
-        elif seconds_left <= 5 * 60:
-            colour = "red"
-        elif seconds_left <= 30 * 60:
-            colour = "yellow"
-        else:
-            colour = "green"
+        # The tray and menu bar already derive their colour from the
+        # configured thresholds; this panel had 5 and 30 minutes written into
+        # it. Someone running CLAUDECLOCK_ALERT_THRESHOLDS=60,20 saw the
+        # terminal go red twenty-five minutes after the notification that was
+        # supposed to coincide with it - and never at all with thresholds
+        # below five minutes.
+        level = urgency(seconds_left, self.config.alert_thresholds)
+        colour = COLOUR_FOR_LEVEL.get(level, "green")
 
         clock = Text(format_duration(remaining), style=f"bold {colour}")
 
