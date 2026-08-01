@@ -192,7 +192,6 @@ def cmd_status(config: Config, args: argparse.Namespace) -> int:
 def cmd_check(config: Config, args: argparse.Namespace) -> int:
     from .auth import AuthError, load_credentials
     from .sources.oauth_usage import OAuthUsageSource
-    from .tracker import build_sources
     from .trigger import dry_run_description
 
     _init_logging(config, console_output=False)
@@ -307,9 +306,6 @@ def cmd_check(config: Config, args: argparse.Namespace) -> int:
     )
 
     console.print(table)
-    # Close any sources we built for validation side effects.
-    for source in build_sources(config):
-        source.close()
     return 0
 
 
