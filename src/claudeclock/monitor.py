@@ -321,13 +321,22 @@ class Monitor:
 
         run_at = datetime.now(timezone.utc) + timedelta(seconds=self.config.trigger_delay)
         log.info("scheduling re-arm", extra={"at": run_at.isoformat()})
-        self.scheduler.add_job(
-            self._rearm_job,
-            "date",
-            run_date=run_at,
-            id=REARM_JOB_ID,
-            replace_existing=True,
-        )
+        try:
+            self.scheduler.add_job(
+                self._rearm_job,
+                "date",
+                run_date=run_at,
+                id=REARM_JOB_ID,
+                replace_existing=True,
+            )
+        except Exception:
+            # _rearm_in_flight is normally cleared by _rearm_job's finally
+            # block, but if the job never gets scheduled that block never runs
+            # and the flag latches on - disabling auto re-arm for the rest of
+            # the process, silently, with the window sitting expired.
+            log.exception("could not schedule the re-arm job")
+            with self._rearm_lock:
+                self._rearm_in_flight = False
 
     def _rearm_job(self) -> None:
         try:
