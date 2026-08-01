@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import subprocess
 import sys
 import time
@@ -144,18 +145,37 @@ def _write_file(creds: Credentials) -> bool:
     try:
         existing: dict = {}
         if CREDENTIALS_FILE.exists():
-            existing = json.loads(CREDENTIALS_FILE.read_text(encoding="utf-8"))
+            loaded = json.loads(CREDENTIALS_FILE.read_text(encoding="utf-8"))
+            # A store that is valid JSON but not an object would blow up on
+            # setdefault below, which the handler does not catch.
+            if isinstance(loaded, dict):
+                existing = loaded
         oauth = existing.setdefault("claudeAiOauth", {})
+        if not isinstance(oauth, dict):
+            oauth = {}
+            existing["claudeAiOauth"] = oauth
         oauth["accessToken"] = creds.access_token
         if creds.refresh_token:
             oauth["refreshToken"] = creds.refresh_token
         if creds.expires_at:
             oauth["expiresAt"] = int(creds.expires_at * 1000)
         CREDENTIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        CREDENTIALS_FILE.write_text(json.dumps(existing, indent=2), encoding="utf-8")
-        CREDENTIALS_FILE.chmod(0o600)
+
+        # Open with 0600 rather than writing and then chmod'ing: write_text
+        # creates the file with the process umask (commonly 0644), so the
+        # token was briefly world-readable every time it was refreshed. On a
+        # shared or multi-user box that window is enough to lose it.
+        fd = os.open(
+            CREDENTIALS_FILE,
+            os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+            0o600,
+        )
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(existing, handle, indent=2)
+        # Re-assert the mode in case the file already existed with looser bits.
+        os.chmod(CREDENTIALS_FILE, 0o600)
         return True
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError) as exc:
         log.warning("could not persist refreshed token", extra={"error": str(exc)})
         return False
 
