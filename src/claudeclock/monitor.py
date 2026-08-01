@@ -245,7 +245,10 @@ class Monitor:
     def publish(self, view: WindowView) -> None:
         """Broadcast the current view to any attached GUI front-end."""
         live_state.publish(
-            self.config.live_file, view, window_hours=self.config.window_hours
+            self.config.live_file,
+            view,
+            window_hours=self.config.window_hours,
+            alert_thresholds=self.config.alert_thresholds,
         )
 
     # -- jobs ---------------------------------------------------------------

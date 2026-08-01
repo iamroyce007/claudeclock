@@ -126,7 +126,7 @@ class TrayApp:
             return
 
         seconds = state.remaining_seconds
-        level = urgency(seconds)
+        level = urgency(seconds, state.alert_thresholds)
 
         # Redraw only when the visible content changes: the icon is rasterised
         # each time, and at one frame per second that adds up for no benefit.

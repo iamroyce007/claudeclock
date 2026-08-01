@@ -31,13 +31,16 @@ def _iso(value: datetime | None) -> str | None:
     return value.astimezone(timezone.utc).isoformat() if value is not None else None
 
 
-def publish(path: Path, view: Any, *, window_hours: float) -> None:
+def publish(
+    path: Path, view: Any, *, window_hours: float, alert_thresholds: tuple[int, ...] = (30, 10, 5)
+) -> None:
     """Atomically write the current view for front-ends to read."""
     payload = {
         "schema": 1,
         "pid": os.getpid(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "window_hours": window_hours,
+        "alert_thresholds": list(alert_thresholds),
         "state": view.state.value if hasattr(view.state, "value") else str(view.state),
         "session_start": _iso(view.session_start),
         "resets_at": _iso(view.resets_at),
@@ -121,6 +124,21 @@ class LiveState:
             return max(0.0, min(1.0, float(value)))
         except (TypeError, ValueError):
             return 0.0
+
+    @property
+    def alert_thresholds(self) -> tuple[int, ...]:
+        """Configured alert minutes, for urgency() colour decisions.
+
+        Falls back to the historical default when reading a snapshot written
+        before this field existed.
+        """
+        raw = self.get("alert_thresholds")
+        if not raw:
+            return (30, 10, 5)
+        try:
+            return tuple(int(v) for v in raw)
+        except (TypeError, ValueError):
+            return (30, 10, 5)
 
 
 def read(path: Path, *, max_age: float = DEFAULT_MAX_AGE) -> LiveState:
@@ -274,7 +292,7 @@ def menubar_title(state: LiveState, *, show_seconds: bool = True) -> str:
     if not state.connected:
         return "⏳ —"
     seconds = state.remaining_seconds
-    level = urgency(seconds)
+    level = urgency(seconds, state.alert_thresholds)
     glyph = GLYPH_FOR_LEVEL.get(level, "○")
     # A hollow glyph means "this is an estimate, not the server's figure".
     # Without it an inferred countdown is indistinguishable from a confirmed
@@ -300,15 +318,23 @@ def tray_tooltip(state: LiveState) -> str:
     )
 
 
-def urgency(seconds: float | None) -> str:
-    """`normal` | `warning` | `critical` | `expired`, for colour decisions."""
+def urgency(seconds: float | None, thresholds: tuple[int, ...] = (30, 10, 5)) -> str:
+    """`normal` | `warning` | `critical` | `expired`, for colour decisions.
+
+    `thresholds` is the same CLAUDECLOCK_ALERT_THRESHOLDS minutes tuple used
+    to schedule alerts (tracker.py), so the tray/menu bar colour a user sees
+    matches when they actually get notified: critical at the nearest
+    threshold, warning at the furthest.
+    """
     if seconds is None:
         return "unknown"
     if seconds <= 0:
         return "expired"
-    if seconds <= 5 * 60:
+    if not thresholds:
+        thresholds = (30, 10, 5)
+    if seconds <= min(thresholds) * 60:
         return "critical"
-    if seconds <= 30 * 60:
+    if seconds <= max(thresholds) * 60:
         return "warning"
     return "normal"
 

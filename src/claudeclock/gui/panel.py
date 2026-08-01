@@ -182,7 +182,7 @@ class Panel:
             return
 
         seconds = state.remaining_seconds
-        level = urgency(seconds)
+        level = urgency(seconds, state.alert_thresholds)
         colour = urgency_colour(level, p)
 
         self.status_label.config(text=state.state, fg=colour)

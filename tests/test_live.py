@@ -173,6 +173,37 @@ def test_urgency_bands(seconds, expected):
     assert live.urgency(seconds) == expected
 
 
+def test_urgency_respects_custom_thresholds():
+    """A user who widens their alert thresholds should see matching colours."""
+    thresholds = (60, 20, 2)
+    assert live.urgency(61 * 60, thresholds) == "normal"
+    assert live.urgency(60 * 60, thresholds) == "warning"
+    assert live.urgency(30 * 60, thresholds) == "warning"
+    assert live.urgency(2 * 60, thresholds) == "critical"
+    assert live.urgency(90, thresholds) == "critical"
+
+
+def test_publish_round_trips_alert_thresholds(tmp_path):
+    path = tmp_path / "live.json"
+    live.publish(
+        path, make_view(remaining=timedelta(minutes=15)),
+        window_hours=5.0, alert_thresholds=(60, 20, 2),
+    )
+    state = live.read(path)
+    assert state.alert_thresholds == (60, 20, 2)
+
+
+def test_alert_thresholds_falls_back_on_old_snapshot(tmp_path):
+    """A snapshot written before this field existed must not crash readers."""
+    path = tmp_path / "live.json"
+    live.publish(path, make_view(), window_hours=5.0)
+    data = json.loads(path.read_text())
+    del data["alert_thresholds"]
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    assert live.read(path).alert_thresholds == (30, 10, 5)
+
+
 def test_menubar_title_when_connected(tmp_path):
     path = tmp_path / "live.json"
     live.publish(path, make_view(remaining=timedelta(hours=4, minutes=12)),
