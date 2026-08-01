@@ -205,6 +205,14 @@ class Config:
             ) from exc
         if any(t <= 0 for t in thresholds):
             raise ConfigError("CLAUDECLOCK_ALERT_THRESHOLDS values must be positive")
+        if not thresholds:
+            # The tracker takes min() of this on every tick to decide when a
+            # window becomes EXPIRING, and min(()) raises. A value like "," or
+            # ", ," parses to an empty tuple, so reject it here rather than
+            # crashing the paint loop once a second, five hours in.
+            raise ConfigError(
+                "CLAUDECLOCK_ALERT_THRESHOLDS must list at least one threshold"
+            )
 
         statusline_default = state_dir / "statusline.json"
         statusline_file = Path(
