@@ -68,6 +68,21 @@ def _get_int(key: str, default: int, *, minimum: int | None = None) -> int:
     return value
 
 
+def _names_a_model(argv: list[str]) -> bool:
+    """Whether the command already chooses a model itself.
+
+    Testing for the bare string "--model" missed both of the other spellings
+    the CLI accepts. `--model=x` is a single argv entry, and `-m x` does not
+    contain "--model" at all, so a command written either way had a second
+    `--model` appended after it - and the CLI takes the last one, quietly
+    re-arming on the default model rather than the one that was asked for.
+    """
+    return any(
+        part == "--model" or part.startswith("--model=") or part == "-m"
+        for part in argv
+    )
+
+
 @dataclass(frozen=True)
 class Config:
     # Window model
@@ -159,7 +174,7 @@ class Config:
                 argv.append(part.replace("{prompt}", self.trigger_prompt))
             else:
                 argv.append(part)
-        if self.trigger_model and "--model" not in argv:
+        if self.trigger_model and not _names_a_model(argv):
             argv += ["--model", self.trigger_model]
         return argv
 

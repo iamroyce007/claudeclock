@@ -160,3 +160,29 @@ def test_explicit_model_is_not_duplicated(monkeypatch, tmp_path):
     argv = config.trigger_argv()
     assert argv.count("--model") == 1
     assert "custom-model" in argv
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "claude -p {prompt} --model=custom-model",  # one argv entry
+        "claude -p {prompt} -m custom-model",  # short form, no "--model" at all
+    ],
+)
+def test_the_other_model_spellings_are_not_overridden(monkeypatch, tmp_path, command):
+    """The CLI takes the last --model, so an appended default wins silently."""
+    config = load(monkeypatch, tmp_path, CLAUDECLOCK_TRIGGER_COMMAND=command)
+    argv = config.trigger_argv()
+
+    assert "custom-model" in " ".join(argv)
+    assert config.trigger_model not in argv
+    assert argv.count("--model") == 0
+
+
+def test_the_default_model_is_still_appended_when_none_is_named(monkeypatch, tmp_path):
+    config = load(
+        monkeypatch, tmp_path, CLAUDECLOCK_TRIGGER_COMMAND="claude -p {prompt}"
+    )
+    argv = config.trigger_argv()
+
+    assert argv[-2:] == ["--model", config.trigger_model]
