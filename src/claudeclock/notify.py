@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -194,7 +195,12 @@ def _post(url: str, payload: dict[str, Any], timeout: float, label: str) -> bool
             )
             return False
         return True
-    except httpx.HTTPError as exc:
+    except (httpx.HTTPError, httpx.InvalidURL) as exc:
+        # InvalidURL is not an HTTPError - it descends straight from Exception -
+        # so a URL httpx refuses to even parse used to escape this handler. A
+        # mistyped port ("https://host:8O80/hook") or a stray space or newline
+        # in the value is enough, and those are configuration typos, exactly
+        # what this function exists to report as a failed channel.
         log.warning("%s webhook failed", label, extra={"error": str(exc)})
         return False
 
@@ -254,6 +260,45 @@ def _generic_payload(note: Notification) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 
 
+def _webhook_channels(config: Config) -> list[tuple[str, str, Callable[[Notification], dict[str, Any]]]]:
+    """The configured webhook channels, in delivery order."""
+    channels: list[tuple[str, str, Callable[[Notification], dict[str, Any]]]] = []
+    if config.discord_webhook_url:
+        channels.append(("discord", config.discord_webhook_url, _discord_payload))
+    if config.slack_webhook_url:
+        channels.append(("slack", config.slack_webhook_url, _slack_payload))
+    if config.webhook_url:
+        channels.append(("webhook", config.webhook_url, _generic_payload))
+    return channels
+
+
+def _isolated(label: str, deliver: Callable[[], bool]) -> bool:
+    """Run one channel, converting any escape into a failed result.
+
+    The isolation the module promises has to live here rather than around the
+    whole fan-out: a single try block covering every channel means the first
+    one to raise takes the rest of them with it.
+    """
+    try:
+        return deliver()
+    except Exception as exc:  # one bad channel must not silence the others
+        log.warning("%s notification raised", label, extra={"error": str(exc)})
+        return False
+
+
+def dispatch(config: Config, note: Notification) -> dict[str, bool]:
+    """Deliver `note` to every configured channel; report each one's outcome."""
+    results: dict[str, bool] = {}
+    if config.desktop_notifications:
+        results["desktop"] = _isolated("desktop", lambda: send_desktop(note))
+    for label, url, build in _webhook_channels(config):
+        results[label] = _isolated(
+            label,
+            lambda u=url, b=build, n=label: _post(u, b(note), config.webhook_timeout, n),
+        )
+    return results
+
+
 class Notifier:
     """Queues notifications and delivers them on a background worker."""
 
@@ -294,25 +339,7 @@ class Notifier:
                 self._queue.task_done()
 
     def _deliver(self, note: Notification) -> None:
-        results: dict[str, bool] = {}
-
-        if self.config.desktop_notifications:
-            results["desktop"] = send_desktop(note)
-
-        timeout = self.config.webhook_timeout
-        if self.config.discord_webhook_url:
-            results["discord"] = _post(
-                self.config.discord_webhook_url, _discord_payload(note), timeout, "discord"
-            )
-        if self.config.slack_webhook_url:
-            results["slack"] = _post(
-                self.config.slack_webhook_url, _slack_payload(note), timeout, "slack"
-            )
-        if self.config.webhook_url:
-            results["webhook"] = _post(
-                self.config.webhook_url, _generic_payload(note), timeout, "webhook"
-            )
-
+        results = dispatch(self.config, note)
         log.debug(
             "notification dispatched",
             extra={"title": note.title, "level": note.level, "results": results},
@@ -328,27 +355,16 @@ class Notifier:
         self._thread.join(timeout=timeout)
 
     def test(self) -> dict[str, bool]:
-        """Synchronously exercise every configured channel."""
+        """Synchronously exercise every configured channel.
+
+        Shares `dispatch` with the worker so `cclock test-notify` reports what
+        a real notification would do, rather than a second copy of the fan-out
+        that has to be kept in step with it by hand.
+        """
         note = Notification(
             title="Test notification",
             message="If you can see this, notifications are wired up correctly.",
             level="success",
             fields={"channel": "test", "host": sys.platform},
         )
-        results: dict[str, bool] = {}
-        if self.config.desktop_notifications:
-            results["desktop"] = send_desktop(note)
-        timeout = self.config.webhook_timeout
-        if self.config.discord_webhook_url:
-            results["discord"] = _post(
-                self.config.discord_webhook_url, _discord_payload(note), timeout, "discord"
-            )
-        if self.config.slack_webhook_url:
-            results["slack"] = _post(
-                self.config.slack_webhook_url, _slack_payload(note), timeout, "slack"
-            )
-        if self.config.webhook_url:
-            results["webhook"] = _post(
-                self.config.webhook_url, _generic_payload(note), timeout, "webhook"
-            )
-        return results
+        return dispatch(self.config, note)
