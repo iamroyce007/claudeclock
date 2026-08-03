@@ -194,7 +194,13 @@ def _post(url: str, payload: dict[str, Any], timeout: float, label: str) -> bool
             )
             return False
         return True
-    except httpx.HTTPError as exc:
+    # httpx.InvalidURL is not a subclass of httpx.HTTPError, so a URL that is
+    # malformed rather than unreachable - "http://host:port/hook" with the
+    # placeholder left in, say - escaped this handler. In the delivery thread
+    # that aborted _deliver partway, so every channel configured after the bad
+    # one silently stopped firing for the life of the process; from `test` it
+    # surfaced as a traceback instead of a failed channel.
+    except (httpx.HTTPError, httpx.InvalidURL) as exc:
         log.warning("%s webhook failed", label, extra={"error": str(exc)})
         return False
 
