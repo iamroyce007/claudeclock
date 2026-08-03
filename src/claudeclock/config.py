@@ -159,7 +159,15 @@ class Config:
                 argv.append(part.replace("{prompt}", self.trigger_prompt))
             else:
                 argv.append(part)
-        if self.trigger_model and "--model" not in argv:
+        # Only supply a model when the command does not already name one.
+        # Testing for the bare "--model" entry missed the equally valid
+        # "--model=x" spelling, so a command written that way had this
+        # default appended after it - and the later flag is the one the CLI
+        # honours, silently overriding the model the user asked for.
+        names_model = any(
+            part == "--model" or part.startswith("--model=") for part in argv
+        )
+        if self.trigger_model and not names_model:
             argv += ["--model", self.trigger_model]
         return argv
 

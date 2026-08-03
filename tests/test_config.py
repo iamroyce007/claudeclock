@@ -160,3 +160,14 @@ def test_explicit_model_is_not_duplicated(monkeypatch, tmp_path):
     argv = config.trigger_argv()
     assert argv.count("--model") == 1
     assert "custom-model" in argv
+
+
+def test_explicit_model_in_equals_form_is_not_overridden(monkeypatch, tmp_path):
+    """`--model=x` names a model just as `--model x` does."""
+    config = load(
+        monkeypatch,
+        tmp_path,
+        CLAUDECLOCK_TRIGGER_COMMAND="claude -p {prompt} --model=custom-model",
+    )
+    argv = config.trigger_argv()
+    assert argv == ["claude", "-p", "Hi", "--model=custom-model"]
